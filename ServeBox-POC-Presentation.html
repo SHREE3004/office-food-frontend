@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ServeBox — POC Presentation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #0f0c29; color: #fff; overflow: hidden; }
+
+  .slide {
+    display: none;
+    width: 100vw;
+    height: 100vh;
+    padding: 60px 80px;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .slide.active { display: flex; }
+
+  /* Backgrounds */
+  .bg-gradient { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); }
+  .bg-dark { background: #1a1a2e; }
+  .bg-red { background: linear-gradient(135deg, #e23744, #c7202e); }
+  .bg-blue { background: linear-gradient(135deg, #2d3436, #0f0c29); }
+  .bg-green { background: linear-gradient(135deg, #0a3d2e, #27ae60); }
+  .bg-purple { background: linear-gradient(135deg, #302b63, #6c5ce7); }
+  .bg-orange { background: linear-gradient(135deg, #e17055, #d63031); }
+
+  h1 { font-size: 52px; font-weight: 900; line-height: 1.2; margin-bottom: 16px; }
+  h2 { font-size: 40px; font-weight: 800; margin-bottom: 24px; color: #e23744; }
+  h3 { font-size: 28px; font-weight: 700; margin-bottom: 16px; color: #f0a500; }
+  p { font-size: 20px; line-height: 1.6; color: #b2bec3; }
+  .subtitle { font-size: 24px; color: #dfe6e9; font-weight: 500; }
+  .small { font-size: 16px; color: #636e72; }
+
+  ul { list-style: none; padding: 0; }
+  ul li { font-size: 20px; padding: 8px 0; color: #dfe6e9; display: flex; align-items: flex-start; gap: 12px; }
+  ul li::before { content: ""; }
+  .bullet { color: #e23744; font-size: 20px; flex-shrink: 0; }
+
+  /* Two column layout */
+  .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 20px; }
+  .column { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 28px; border: 1px solid rgba(255,255,255,0.1); }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  th, td { padding: 14px 20px; text-align: left; font-size: 17px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  th { color: #e23744; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.05em; }
+  td { color: #dfe6e9; }
+
+  /* Code block */
+  .code-block {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 24px;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    color: #c9d1d9;
+    margin-top: 16px;
+    white-space: pre;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+  .code-keyword { color: #ff7b72; }
+  .code-string { color: #a5d6ff; }
+  .code-comment { color: #8b949e; }
+  .code-func { color: #d2a8ff; }
+
+  /* Tags */
+  .tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  .tag { background: rgba(226,55,68,0.15); color: #e23744; padding: 8px 16px; border-radius: 50px; font-size: 14px; font-weight: 600; border: 1px solid rgba(226,55,68,0.3); }
+  .tag-blue { background: rgba(99,110,114,0.2); color: #74b9ff; border-color: rgba(116,185,255,0.3); }
+  .tag-green { background: rgba(39,174,96,0.15); color: #27ae60; border-color: rgba(39,174,96,0.3); }
+  .tag-yellow { background: rgba(240,165,0,0.15); color: #f0a500; border-color: rgba(240,165,0,0.3); }
+
+  /* Flow diagram */
+  .flow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+  .flow-box { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 16px 24px; font-size: 15px; font-weight: 600; text-align: center; }
+  .flow-arrow { font-size: 24px; color: #e23744; }
+
+  /* Architecture boxes */
+  .arch-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
+  .arch-box { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 20px; text-align: center; }
+  .arch-box .icon { font-size: 36px; margin-bottom: 8px; }
+  .arch-box h4 { font-size: 16px; color: #fff; margin-bottom: 4px; }
+  .arch-box p { font-size: 13px; color: #636e72; }
+
+  /* Navigation */
+  .nav-controls {
+    position: fixed;
+    bottom: 30px;
+    right: 40px;
+    display: flex;
+    gap: 12px;
+    z-index: 100;
+  }
+  .nav-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { background: #e23744; border-color: #e23744; }
+
+  .slide-counter {
+    position: fixed;
+    bottom: 40px;
+    left: 40px;
+    font-size: 14px;
+    color: #636e72;
+    z-index: 100;
+  }
+
+  /* Highlight box */
+  .highlight-box {
+    background: rgba(226,55,68,0.1);
+    border-left: 4px solid #e23744;
+    padding: 20px 24px;
+    border-radius: 0 12px 12px 0;
+    margin-top: 16px;
+  }
+  .highlight-box p { color: #dfe6e9; font-size: 18px; }
+
+  /* Animations */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .slide.active > * { animation: fadeIn 0.5s ease-out forwards; }
+  .slide.active > *:nth-child(2) { animation-delay: 0.1s; }
+  .slide.active > *:nth-child(3) { animation-delay: 0.2s; }
+  .slide.active > *:nth-child(4) { animation-delay: 0.3s; }
+</style>
+</head>
+<body>
+
+<!-- ===================== SLIDE 1: TITLE ===================== -->
+<div class="slide bg-gradient active">
+  <div style="text-align:center;">
+    <div style="font-size:80px; margin-bottom:20px;">🍽️</div>
+    <h1 style="font-size:64px;">ServeBox</h1>
+    <p class="subtitle" style="font-size:28px; color:#f0a500; margin-bottom:12px;">Office Food Ordering System</p>
+    <p style="font-size:20px; color:#636e72;">Proof of Concept — Technical Presentation</p>
+    <div class="tags" style="justify-content:center; margin-top:32px;">
+      <span class="tag">React 19</span>
+      <span class="tag-blue tag">SPA Architecture</span>
+      <span class="tag-green tag">Razorpay Integration</span>
+      <span class="tag-yellow tag">Deployed on Netlify</span>
+    </div>
+    <p style="margin-top:40px; font-size:16px; color:#636e72;">🌐 https://servebox.netlify.app</p>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 2: PROBLEM STATEMENT ===================== -->
+<div class="slide bg-dark">
+  <h2>📌 Problem Statement</h2>
+  <p style="font-size:22px; color:#dfe6e9; max-width:800px;">
+    Managing office food orders is chaotic — paper lists, WhatsApp groups, and manual tracking lead to errors, delays, and payment confusion.
+  </p>
+  <div class="columns" style="margin-top:32px;">
+    <div class="column">
+      <h3 style="color:#e74c3c;">❌ Current Pain Points</h3>
+      <ul>
+        <li><span class="bullet">•</span> Manual order collection via chat/paper</li>
+        <li><span class="bullet">•</span> No centralized menu management</li>
+        <li><span class="bullet">•</span> Cash handling & payment tracking issues</li>
+        <li><span class="bullet">•</span> No order history or audit trail</li>
+        <li><span class="bullet">•</span> Catering team has no dashboard</li>
+      </ul>
+    </div>
+    <div class="column">
+      <h3 style="color:#27ae60;">✅ ServeBox Solution</h3>
+      <ul>
+        <li><span class="bullet">•</span> Digital ordering with live menu</li>
+        <li><span class="bullet">•</span> Role-based access (Employee + Catering)</li>
+        <li><span class="bullet">•</span> Integrated Razorpay payments</li>
+        <li><span class="bullet">•</span> Complete order history & tracking</li>
+        <li><span class="bullet">•</span> Full admin dashboard for catering</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 3: TECH STACK ===================== -->
+<div class="slide bg-blue">
+  <h2>🛠️ Technology Stack</h2>
+  <table>
+    <thead>
+      <tr><th>Layer</th><th>Technology</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>⚛️ Frontend Framework</td><td><strong>React 19</strong></td><td>Component-based Single Page Application</td></tr>
+      <tr><td>🧭 Routing</td><td><strong>React Router v7</strong></td><td>Client-side navigation without page reloads</td></tr>
+      <tr><td>🧠 State Management</td><td><strong>useState + useMemo</strong></td><td>Lightweight React Hooks (no Redux overhead)</td></tr>
+      <tr><td>💾 Data Persistence</td><td><strong>localStorage + sessionStorage</strong></td><td>Browser-native storage (Web Storage API)</td></tr>
+      <tr><td>💳 Payments</td><td><strong>Razorpay Checkout.js</strong></td><td>PCI-DSS compliant payment gateway</td></tr>
+      <tr><td>🎨 Styling</td><td><strong>Pure CSS + CSS Variables</strong></td><td>Zero-dependency theming with design tokens</td></tr>
+      <tr><td>🚀 Deployment</td><td><strong>Netlify (CDN)</strong></td><td>Global static hosting with instant deploys</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===================== SLIDE 4: ARCHITECTURE ===================== -->
+<div class="slide bg-dark">
+  <h2>🏗️ Application Architecture</h2>
+  <p style="margin-bottom:12px;">Single Page Application (SPA) with client-side routing</p>
+  <div class="arch-grid">
+    <div class="arch-box">
+      <div class="icon">🔐</div>
+      <h4>Auth Layer</h4>
+      <p>LoginPage / SignUpPage</p>
+      <p>Password validation (5 regex rules)</p>
+      <p>Session management</p>
+    </div>
+    <div class="arch-box">
+      <div class="icon">👨‍💼</div>
+      <h4>Employee Module</h4>
+      <p>EmployeeDashboard</p>
+      <p>CartPage + Razorpay</p>
+      <p>OrderConfirmation</p>
+    </div>
+    <div class="arch-box">
+      <div class="icon">👨‍🍳</div>
+      <h4>Catering Module</h4>
+      <p>CateringDashboard</p>
+      <p>Menu CRUD Operations</p>
+      <p>Order Management</p>
+    </div>
+  </div>
+
+  <div style="margin-top:24px;">
+    <h3 style="font-size:18px;">Route Map</h3>
+    <div class="code-block" style="font-size:15px;">
+<span class="code-comment">// App.js — Route Definitions</span>
+/              → LoginPage          <span class="code-comment">// Authentication</span>
+/signup        → SignUpPage         <span class="code-comment">// New user registration</span>
+/employee      → EmployeeDashboard  <span class="code-comment">// Browse menu, add to cart</span>
+/employee/cart → CartPage           <span class="code-comment">// Cart + Razorpay payment</span>
+/employee/order-success → OrderConfirmation
+/catering      → CateringDashboard  <span class="code-comment">// Admin: menu + orders</span>
+/*             → Redirect to /      <span class="code-comment">// Catch-all</span></div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 5: DATA LAYER ===================== -->
+<div class="slide bg-gradient">
+  <h2>💾 Data Layer (storage.js)</h2>
+  <p>No backend server — Web Storage API acts as the data layer</p>
+
+  <table style="margin-top:20px;">
+    <thead>
+      <tr><th>Storage Key</th><th>Type</th><th>Content</th><th>Persists?</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>office-food-users</code></td><td>localStorage</td><td>Registered accounts (name, password, role)</td><td>✅ Permanent</td></tr>
+      <tr><td><code>office-food-menu</code></td><td>localStorage</td><td>Menu items (seeded with 10 defaults)</td><td>✅ Permanent</td></tr>
+      <tr><td><code>office-food-orders</code></td><td>localStorage</td><td>All placed orders with payment details</td><td>✅ Permanent</td></tr>
+      <tr><td><code>office-food-session</code></td><td>sessionStorage</td><td>Current login (name, role, timestamp)</td><td>❌ Tab close</td></tr>
+    </tbody>
+  </table>
+
+  <div class="highlight-box" style="margin-top:24px;">
+    <p><strong>💡 Design Decision:</strong> sessionStorage for auth = auto-logout on tab close (security). localStorage for data = survives browser restarts. In production, this would be replaced with REST API + Database.</p>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 6: AUTH SYSTEM ===================== -->
+<div class="slide bg-dark">
+  <h2>🔐 Authentication System</h2>
+  <div class="columns">
+    <div class="column">
+      <h3 style="color:#6c5ce7;">Sign Up Flow</h3>
+      <ul>
+        <li><span class="bullet">1.</span> User enters name, password, role</li>
+        <li><span class="bullet">2.</span> Real-time password validation (useMemo)</li>
+        <li><span class="bullet">3.</span> Confirm password match check</li>
+        <li><span class="bullet">4.</span> Duplicate user detection</li>
+        <li><span class="bullet">5.</span> Save to localStorage → redirect to login</li>
+      </ul>
+      <h3 style="color:#e23744; margin-top:20px;">Password Rules (Regex)</h3>
+      <div class="code-block" style="font-size:14px;">
+/.length >= 8/    → Min 8 characters
+/[A-Z]/           → Uppercase letter
+/[a-z]/           → Lowercase letter
+/[0-9]/           → Digit
+/[^A-Za-z0-9]/    → Special character</div>
+    </div>
+    <div class="column">
+      <h3 style="color:#27ae60;">Login Flow</h3>
+      <ul>
+        <li><span class="bullet">1.</span> Validate password format (same 5 rules)</li>
+        <li><span class="bullet">2.</span> findUser() — lookup by name + role</li>
+        <li><span class="bullet">3.</span> Compare password</li>
+        <li><span class="bullet">4.</span> Create session in sessionStorage</li>
+        <li><span class="bullet">5.</span> Navigate to role-based dashboard</li>
+      </ul>
+      <h3 style="color:#f0a500; margin-top:20px;">Session Guard</h3>
+      <div class="code-block" style="font-size:14px;">
+<span class="code-comment">// Every protected component:</span>
+<span class="code-keyword">const</span> session = sessionStorage.getItem(
+  <span class="code-string">"office-food-session"</span>
+);
+<span class="code-keyword">if</span> (!session) {
+  navigate(<span class="code-string">"/"</span>); <span class="code-comment">// Kick to login</span>
+}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 7: EMPLOYEE MODULE ===================== -->
+<div class="slide bg-blue">
+  <h2>👨‍💼 Employee Module</h2>
+  <div class="columns">
+    <div class="column">
+      <h3>Menu Dashboard</h3>
+      <ul>
+        <li><span class="bullet">🔍</span> Live search — case-insensitive substring match</li>
+        <li><span class="bullet">🏷️</span> Dynamic category pills (auto-generated from data)</li>
+        <li><span class="bullet">📱</span> CSS Grid with auto-fill + minmax() — auto-responsive</li>
+        <li><span class="bullet">🛒</span> Add to cart with live quantity badges</li>
+        <li><span class="bullet">📌</span> Floating cart bar (position: fixed)</li>
+      </ul>
+    </div>
+    <div class="column">
+      <h3>Cart System</h3>
+      <ul>
+        <li><span class="bullet">➕</span> Increment / decrement with auto-remove at 0</li>
+        <li><span class="bullet">📊</span> Live total calculation using Array.reduce()</li>
+        <li><span class="bullet">🔄</span> State lifted to App.js — shared across routes</li>
+        <li><span class="bullet">💳</span> Two payment options: Razorpay / COD</li>
+        <li><span class="bullet">📝</span> Order summary with itemized breakdown</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="highlight-box" style="margin-top:20px;">
+    <p><strong>⚛️ React Pattern — "Lifting State Up":</strong> Cart state lives in App.js and is passed via props to EmployeeDashboard, CartPage, and Navbar. This ensures all components share the same cart data without external state libraries.</p>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 8: RAZORPAY ===================== -->
+<div class="slide bg-red">
+  <h2 style="color:#fff;">💳 Razorpay Payment Integration</h2>
+
+  <div class="flow">
+    <div class="flow-box">User clicks<br/>"Pay with Razorpay"</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">Validate API Key<br/>& SDK loaded</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">Razorpay modal<br/>opens (iframe)</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">User enters<br/>payment details</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">✅ Success / ❌ Fail<br/>→ Callback</div>
+  </div>
+
+  <div class="columns" style="margin-top:24px;">
+    <div class="column" style="background:rgba(0,0,0,0.2);">
+      <h3 style="color:#fff;">Technical Details</h3>
+      <ul>
+        <li><span class="bullet">🔑</span> API Key injected at build time via .env</li>
+        <li><span class="bullet">💰</span> Amount in paise (₹140 = 14000)</li>
+        <li><span class="bullet">🔒</span> Card data never touches our code (PCI-DSS)</li>
+        <li><span class="bullet">📎</span> Payment ID captured & stored with order</li>
+        <li><span class="bullet">⏳</span> Loading state prevents double-payments</li>
+        <li><span class="bullet">❌</span> Failure handler shows error reason + code</li>
+      </ul>
+    </div>
+    <div class="column" style="background:rgba(0,0,0,0.2);">
+      <h3 style="color:#fff;">Code Architecture</h3>
+      <div class="code-block" style="font-size:13px; margin-top:8px;">
+<span class="code-keyword">const</span> options = {
+  key: process.env.<span class="code-string">REACT_APP_RAZORPAY_KEY_ID</span>,
+  amount: totalPrice * <span class="code-string">100</span>,
+  currency: <span class="code-string">"INR"</span>,
+  handler: (response) => {
+    <span class="code-comment">// response.razorpay_payment_id</span>
+    <span class="code-func">finishOrder</span>(order);
+  },
+  <span class="code-string">"payment.failed"</span>: (resp) => {
+    alert(resp.error.description);
+  }
+};
+<span class="code-keyword">new</span> window.<span class="code-func">Razorpay</span>(options).<span class="code-func">open</span>();</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 9: CATERING MODULE ===================== -->
+<div class="slide bg-dark">
+  <h2>👨‍🍳 Catering Admin Module</h2>
+  <div class="columns">
+    <div class="column">
+      <h3>Menu Management (CRUD)</h3>
+      <ul>
+        <li><span class="bullet">➕</span> <strong>Create:</strong> Modal form → auto-generate ID</li>
+        <li><span class="bullet">📖</span> <strong>Read:</strong> Table view with category tags & status</li>
+        <li><span class="bullet">✏️</span> <strong>Update:</strong> Edit in modal → .map() replace</li>
+        <li><span class="bullet">🗑️</span> <strong>Delete:</strong> Confirm dialog → .filter() remove</li>
+        <li><span class="bullet">🔄</span> <strong>Toggle:</strong> Available / Unavailable status</li>
+      </ul>
+      <div class="tags" style="margin-top:16px;">
+        <span class="tag-green tag">Breakfast</span>
+        <span class="tag-green tag">Lunch</span>
+        <span class="tag-green tag">Snacks</span>
+        <span class="tag-green tag">Beverages</span>
+      </div>
+    </div>
+    <div class="column">
+      <h3>Order Dashboard</h3>
+      <ul>
+        <li><span class="bullet">📦</span> All orders in card layout</li>
+        <li><span class="bullet">👤</span> Employee name & order details</li>
+        <li><span class="bullet">💳</span> Payment mode badge (Paid / COD)</li>
+        <li><span class="bullet">🕐</span> Order timestamp</li>
+        <li><span class="bullet">🔄</span> Manual refresh to load new orders</li>
+        <li><span class="bullet">📊</span> Total amount per order</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 10: STYLING & UX ===================== -->
+<div class="slide bg-gradient">
+  <h2>🎨 UI/UX & Styling Architecture</h2>
+  <div class="columns">
+    <div class="column">
+      <h3>CSS Design System</h3>
+      <ul>
+        <li><span class="bullet">🎯</span> <strong>CSS Variables</strong> — Change --primary once, entire theme updates</li>
+        <li><span class="bullet">📐</span> <strong>CSS Grid</strong> — Auto-responsive menu cards</li>
+        <li><span class="bullet">📱</span> <strong>Media Queries</strong> — Mobile-first at 900px breakpoint</li>
+        <li><span class="bullet">✨</span> <strong>Transitions</strong> — Hover effects, smooth interactions</li>
+        <li><span class="bullet">🎨</span> <strong>Zero Dependencies</strong> — No Tailwind / Bootstrap</li>
+      </ul>
+      <div class="code-block" style="font-size:14px; margin-top:12px;">
+<span class="code-keyword">:root</span> {
+  --primary: <span class="code-string">#e23744</span>;
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.12);
+  --radius: 12px;
+}</div>
+    </div>
+    <div class="column">
+      <h3>UX Highlights</h3>
+      <ul>
+        <li><span class="bullet">✅</span> Real-time password strength indicator</li>
+        <li><span class="bullet">🛒</span> Floating cart bar — always accessible</li>
+        <li><span class="bullet">🔍</span> Instant search — no API delay</li>
+        <li><span class="bullet">🏷️</span> Dynamic category filtering</li>
+        <li><span class="bullet">⚡</span> Optimistic UI — instant cart updates</li>
+        <li><span class="bullet">📱</span> Fully responsive — works on mobile</li>
+        <li><span class="bullet">🔐</span> Auto-logout on tab close</li>
+        <li><span class="bullet">⏳</span> Payment loading state (prevents double-submit)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 11: DEPLOYMENT ===================== -->
+<div class="slide bg-purple">
+  <h2 style="color:#fff;">🚀 Deployment Pipeline</h2>
+
+  <div class="flow" style="justify-content:center; margin-top:20px;">
+    <div class="flow-box" style="background:rgba(0,0,0,0.3);">React Code<br/>(JSX + CSS)</div>
+    <div class="flow-arrow" style="color:#fff;">→</div>
+    <div class="flow-box" style="background:rgba(0,0,0,0.3);">npm run build<br/>(Webpack bundle)</div>
+    <div class="flow-arrow" style="color:#fff;">→</div>
+    <div class="flow-box" style="background:rgba(0,0,0,0.3);">Static Files<br/>(HTML + JS + CSS)</div>
+    <div class="flow-arrow" style="color:#fff;">→</div>
+    <div class="flow-box" style="background:rgba(0,0,0,0.3);">Netlify CDN<br/>(Global Edge)</div>
+    <div class="flow-arrow" style="color:#fff;">→</div>
+    <div class="flow-box" style="background:rgba(0,0,0,0.3);">🌐 Live URL<br/>servebox.netlify.app</div>
+  </div>
+
+  <div class="columns" style="margin-top:32px;">
+    <div class="column" style="background:rgba(0,0,0,0.2);">
+      <h3 style="color:#fff;">Build Process</h3>
+      <ul>
+        <li><span class="bullet">📦</span> Webpack compiles JSX → vanilla JS</li>
+        <li><span class="bullet">🔑</span> .env variables baked into bundle at build time</li>
+        <li><span class="bullet">🗜️</span> Code minified + gzipped (~81KB JS, ~3KB CSS)</li>
+        <li><span class="bullet">🔗</span> Content-hashed filenames for cache busting</li>
+      </ul>
+    </div>
+    <div class="column" style="background:rgba(0,0,0,0.2);">
+      <h3 style="color:#fff;">Netlify Features</h3>
+      <ul>
+        <li><span class="bullet">🌍</span> Global CDN — fast worldwide</li>
+        <li><span class="bullet">🔒</span> Free HTTPS (SSL certificate)</li>
+        <li><span class="bullet">♾️</span> No expiration — stays live forever</li>
+        <li><span class="bullet">📂</span> Drag & drop deployment</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 12: SECURITY ===================== -->
+<div class="slide bg-orange">
+  <h2 style="color:#fff;">🔒 Security Considerations</h2>
+  <div class="columns">
+    <div class="column" style="background:rgba(0,0,0,0.2);">
+      <h3 style="color:#fff;">What's Secured (POC)</h3>
+      <ul>
+        <li><span class="bullet">✅</span> Password policy enforcement (5 rules)</li>
+        <li><span class="bullet">✅</span> PCI-DSS — Card data in Razorpay iframe only</li>
+        <li><span class="bullet">✅</span> Session auto-expiry on tab close</li>
+        <li><span class="bullet">✅</span> Route guards on protected pages</li>
+        <li><span class="bullet">✅</span> HTTPS via Netlify SSL</li>
+        <li><span class="bullet">✅</span> No API keys exposed in client code (test key only)</li>
+      </ul>
+    </div>
+    <div class="column" style="background:rgba(0,0,0,0.2);">
+      <h3 style="color:#fff;">Production Upgrades Needed</h3>
+      <ul>
+        <li><span class="bullet">🔄</span> bcrypt password hashing (server-side)</li>
+        <li><span class="bullet">🔄</span> JWT token-based authentication</li>
+        <li><span class="bullet">🔄</span> Server-side payment verification</li>
+        <li><span class="bullet">🔄</span> Rate limiting & CSRF protection</li>
+        <li><span class="bullet">🔄</span> Database encryption at rest</li>
+        <li><span class="bullet">🔄</span> Input sanitization (XSS prevention)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 13: PRODUCTION ROADMAP ===================== -->
+<div class="slide bg-dark">
+  <h2>🗺️ Production Roadmap</h2>
+  <p>Scaling from POC to production-ready application</p>
+
+  <div class="arch-grid" style="margin-top:24px;">
+    <div class="arch-box">
+      <div class="icon">🖥️</div>
+      <h4>Backend API</h4>
+      <p>Node.js + Express</p>
+      <p>Replace localStorage with REST APIs</p>
+    </div>
+    <div class="arch-box">
+      <div class="icon">🗄️</div>
+      <h4>Database</h4>
+      <p>MongoDB / PostgreSQL</p>
+      <p>Shared data, multi-user support</p>
+    </div>
+    <div class="arch-box">
+      <div class="icon">🔐</div>
+      <h4>Auth Service</h4>
+      <p>JWT + bcrypt</p>
+      <p>Secure token-based sessions</p>
+    </div>
+    <div class="arch-box">
+      <div class="icon">💳</div>
+      <h4>Payment Verification</h4>
+      <p>Server-side Razorpay verification</p>
+      <p>Webhook for payment status</p>
+    </div>
+    <div class="arch-box">
+      <div class="icon">📱</div>
+      <h4>Mobile App</h4>
+      <p>Capacitor or React Native</p>
+      <p>Android + iOS app store</p>
+    </div>
+    <div class="arch-box">
+      <div class="icon">📊</div>
+      <h4>Analytics</h4>
+      <p>Order trends, popular items</p>
+      <p>Revenue dashboard</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 14: FILE STRUCTURE ===================== -->
+<div class="slide bg-blue">
+  <h2>📁 Project File Structure</h2>
+  <div class="columns">
+    <div class="column">
+      <div class="code-block" style="font-size:14px;">
+office-food-frontend/
+├── public/
+│   └── index.html        <span class="code-comment"># HTML + Razorpay SDK</span>
+├── src/
+│   ├── App.js            <span class="code-comment"># Route definitions</span>
+│   ├── App.css           <span class="code-comment"># Complete stylesheet</span>
+│   ├── index.js          <span class="code-comment"># React entry point</span>
+│   ├── components/
+│   │   ├── LoginPage.js
+│   │   ├── SignUpPage.js
+│   │   ├── EmployeeDashboard.js
+│   │   ├── CartPage.js
+│   │   ├── OrderConfirmation.js
+│   │   ├── CateringDashboard.js
+│   │   └── Navbar.js
+│   └── helpers/
+│       └── storage.js    <span class="code-comment"># Data layer</span>
+├── .env                  <span class="code-comment"># Razorpay API key</span>
+├── package.json
+└── build/                <span class="code-comment"># Production bundle</span></div>
+    </div>
+    <div class="column">
+      <h3>Component Responsibilities</h3>
+      <table style="margin-top:0;">
+        <tr><td><strong>App.js</strong></td><td>Root router + global state (cart)</td></tr>
+        <tr><td><strong>LoginPage</strong></td><td>Auth + password validation</td></tr>
+        <tr><td><strong>SignUpPage</strong></td><td>Registration + real-time rules</td></tr>
+        <tr><td><strong>EmployeeDash</strong></td><td>Menu browsing + search/filter</td></tr>
+        <tr><td><strong>CartPage</strong></td><td>Cart management + Razorpay</td></tr>
+        <tr><td><strong>OrderConfirm</strong></td><td>Success page + payment ID</td></tr>
+        <tr><td><strong>CateringDash</strong></td><td>Menu CRUD + order viewing</td></tr>
+        <tr><td><strong>Navbar</strong></td><td>Shared header + logout</td></tr>
+        <tr><td><strong>storage.js</strong></td><td>All data operations (CRUD)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 15: DEMO & THANK YOU ===================== -->
+<div class="slide bg-gradient">
+  <div style="text-align:center;">
+    <div style="font-size:80px; margin-bottom:20px;">🎉</div>
+    <h1 style="font-size:56px;">Live Demo</h1>
+    <p class="subtitle" style="font-size:24px; margin-bottom:32px;">https://servebox.netlify.app</p>
+
+    <div style="display:flex; justify-content:center; gap:40px; margin-top:20px;">
+      <div>
+        <h3 style="font-size:18px; color:#27ae60;">Employee Login</h3>
+        <p style="font-size:16px;">Browse menu → Add to cart → Pay</p>
+      </div>
+      <div>
+        <h3 style="font-size:18px; color:#f0a500;">Catering Login</h3>
+        <p style="font-size:16px;">Manage menu → View orders</p>
+      </div>
+    </div>
+
+    <div style="margin-top:48px;">
+      <h2 style="color:#fff; font-size:36px;">Thank You! 🙏</h2>
+      <p style="font-size:18px; color:#636e72; margin-top:12px;">Questions?</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== NAVIGATION ===================== -->
+<div class="slide-counter">
+  <span id="current">1</span> / <span id="total">15</span>
+</div>
+<div class="nav-controls">
+  <button class="nav-btn" onclick="changeSlide(-1)">←</button>
+  <button class="nav-btn" onclick="changeSlide(1)">→</button>
+</div>
+
+<script>
+  let currentSlide = 0;
+  const slides = document.querySelectorAll('.slide');
+  const totalEl = document.getElementById('total');
+  const currentEl = document.getElementById('current');
+  totalEl.textContent = slides.length;
+
+  function showSlide(n) {
+    slides.forEach(s => s.classList.remove('active'));
+    currentSlide = (n + slides.length) % slides.length;
+    slides[currentSlide].classList.add('active');
+    currentEl.textContent = currentSlide + 1;
+  }
+
+  function changeSlide(delta) {
+    showSlide(currentSlide + delta);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); changeSlide(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); changeSlide(-1); }
+    if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+</script>
+
+</body>
+</html>
