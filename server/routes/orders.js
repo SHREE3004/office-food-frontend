@@ -16,6 +16,11 @@ function formatDate(d) {
   return `${year}-${month}-${day}`;
 }
 
+// Helper: get current time in IST
+function nowIST() {
+  return new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+}
+
 // Helper: generate order ID like 20260319-01
 async function generateOrderId(scheduledDate) {
   const prefix = scheduledDate.replace(/-/g, "");
@@ -120,7 +125,7 @@ router.post("/", authMiddleware, async (req, res) => {
     await client.query(
       `INSERT INTO orders (order_id, employee, total, payment_mode, status, scheduled_date, is_pre_order, placed_at, razorpay_payment_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [orderId, employee, total, paymentMode, status, scheduledDate, isPreOrder || false, new Date().toLocaleString(), razorpayPaymentId || null]
+      [orderId, employee, total, paymentMode, status, scheduledDate, isPreOrder || false, nowIST(), razorpayPaymentId || null]
     );
 
     for (const item of items) {
@@ -141,7 +146,7 @@ router.post("/", authMiddleware, async (req, res) => {
       status,
       scheduledDate,
       isPreOrder: isPreOrder || false,
-      placedAt: new Date().toLocaleString(),
+      placedAt: nowIST(),
       razorpayPaymentId: razorpayPaymentId || null,
     });
   } catch (err) {
@@ -164,9 +169,9 @@ router.patch("/:orderId/status", authMiddleware, async (req, res) => {
     }
 
     const extras = {};
-    if (status === "Preparing") extras.preparing_at = new Date().toLocaleString();
-    if (status === "Ready") extras.ready_at = new Date().toLocaleString();
-    if (status === "Delivered") extras.delivered_at = new Date().toLocaleString();
+    if (status === "Preparing") extras.preparing_at = nowIST();
+    if (status === "Ready") extras.ready_at = nowIST();
+    if (status === "Delivered") extras.delivered_at = nowIST();
 
     const setClauses = ["status = $1"];
     const params = [status];
