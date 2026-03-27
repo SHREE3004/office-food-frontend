@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
-import { formatPrice, getQueuePosition, ORDER_STATUSES } from "../helpers/storage";
+import { formatPrice, getQueuePosition, ORDER_STATUSES, getDateString } from "../helpers/storage";
 import { apiGetMenu, apiGetOrders, apiMarkNotified } from "../helpers/api";
 
 export default function EmployeeDashboard({ cart, setCart }) {
@@ -11,24 +11,38 @@ export default function EmployeeDashboard({ cart, setCart }) {
   const [filterCategory, setFilterCategory] = useState("All");
   const [notifications, setNotifications] = useState([]);
   const [myOrders, setMyOrders] = useState([]);
+  const [allOrders, setAllOrders] = useState([]);
   const [showMyOrders, setShowMyOrders] = useState(false);
+  const [showLiveQueue, setShowLiveQueue] = useState(false);
 
   const session = JSON.parse(sessionStorage.getItem("office-food-session") || "{}");
+
+  const loadAllOrders = useCallback(async () => {
+    try {
+      const today = getDateString(0);
+      const orders = await apiGetOrders({ date: today });
+      setAllOrders(orders);
+      return orders;
+    } catch {
+      return [];
+    }
+  }, []);
 
   const loadMyOrders = useCallback(async () => {
     if (!session.name) return;
     try {
       const orders = await apiGetOrders({ employee: session.name });
+      const todayAll = await loadAllOrders();
       const enriched = orders.map((o) => ({
         ...o,
-        queuePosition: getQueuePosition(orders, o.orderId),
+        queuePosition: getQueuePosition(todayAll || orders, o.orderId),
       }));
       setMyOrders(enriched);
       return orders;
     } catch {
       return [];
     }
-  }, [session.name]);
+  }, [session.name, loadAllOrders]);
 
   const checkReadyOrders = useCallback(async () => {
     if (!session.name) return;
@@ -160,11 +174,21 @@ export default function EmployeeDashboard({ cart, setCart }) {
               <h1>🍽️ Today's Menu</h1>
               <p>Browse and add items to your cart</p>
             </div>
-            <button className="btn btn-outline my-orders-btn" onClick={() => setShowMyOrders(!showMyOrders)}>
-              📋 My Orders ({myOrders.filter((o) => o.status !== "Delivered").length})
-            </button>
+            <div className="header-btn-group">
+              <button className="btn btn-outline my-orders-btn" onClick={() => { setShowLiveQueue(!showLiveQueue); if (showMyOrders) setShowMyOrders(false); }}>
+                📊 Live Queue ({allOrders.filter((o) => o.status !== "Delivered").length})
+              </button>
+              <button className="btn btn-outline my-orders-btn" onClick={() => { setShowMyOrders(!showMyOrders); if (showLiveQueue) setShowLiveQueue(false); }}>
+                📋 My Orders ({myOrders.filter((o) => o.status !== "Delivered").length})
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Live Queue Panel */}
+        {showLiveQueue && (
+          <LiveQueuePanel allOrders={allOrders} myName={session.name} />
+        )}
 
         {/* My Orders Panel */}
         {showMyOrders && (
@@ -270,6 +294,104 @@ export default function EmployeeDashboard({ cart, setCart }) {
         {cartCount > 0 && (
           <div className="floating-cart" onClick={() => navigate("/employee/cart")}>
             🛒 View Cart ({cartCount} items) →
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============ LIVE QUEUE PANEL ============ */
+function LiveQueuePanel({ allOrders, myName }) {
+  const activeOrders = allOrders
+    .filter((o) => o.status !== "Delivered")
+    .sort((a, b) => (a.orderId > b.orderId ? 1 : -1));
+
+  const myActiveOrders = activeOrders.filter((o) => o.employee === myName);
+
+  // Group by status for summary
+  const statusCounts = {};
+  activeOrders.forEach((o) => {
+    statusCounts[o.status] = (statusCounts[o.status] || 0) + 1;
+  });
+
+  const STATUS_ICONS = {
+    Placed: "🕐",
+    Preparing: "👨‍🍳",
+    Ready: "✅",
+    Delivered: "📦",
+  };
+
+  return (
+    <div className="live-queue-panel">
+      <div className="queue-header">
+        <h2>📊 Live Order Queue</h2>
+        <div className="queue-summary-chips">
+          {ORDER_STATUSES.filter((s) => s !== "Delivered").map((s) => (
+            <span key={s} className={`queue-summary-chip chip-${s.toLowerCase()}`}>
+              {STATUS_ICONS[s]} {s}: {statusCounts[s] || 0}
+            </span>
+          ))}
+          <span className="queue-summary-chip chip-total">Total Active: {activeOrders.length}</span>
+        </div>
+      </div>
+
+      {/* My position highlight */}
+      {myActiveOrders.length > 0 && (
+        <div className="my-queue-highlight">
+          <h3>🎯 Your Order{myActiveOrders.length > 1 ? "s" : ""} in Queue</h3>
+          {myActiveOrders.map((order) => {
+            const pos = activeOrders.findIndex((o) => o.orderId === order.orderId) + 1;
+            return (
+              <div key={order.orderId} className="my-queue-card">
+                <div className="my-queue-position">#{pos}</div>
+                <div className="my-queue-info">
+                  <span className="my-queue-order-id">{order.orderId}</span>
+                  <span className={`queue-status-pill pill-${order.status.toLowerCase()}`}>{STATUS_ICONS[order.status]} {order.status}</span>
+                </div>
+                <div className="my-queue-items">
+                  {order.items.map((item) => (
+                    <span key={item.id} className="order-item-chip">{item.name} × {item.qty}</span>
+                  ))}
+                </div>
+                {pos === 1 && <span className="queue-up-next">🔥 You're next!</span>}
+                {pos > 1 && <span className="queue-ahead">{pos - 1} order{pos - 1 > 1 ? "s" : ""} ahead of you</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Full queue list */}
+      <div className="queue-list">
+        <h3>📋 All Active Orders ({activeOrders.length})</h3>
+        {activeOrders.length === 0 ? (
+          <p className="empty-state-text">No active orders right now</p>
+        ) : (
+          <div className="queue-table">
+            <div className="queue-table-header">
+              <span>#</span>
+              <span>Order ID</span>
+              <span>Employee</span>
+              <span>Items</span>
+              <span>Status</span>
+            </div>
+            {activeOrders.map((order, idx) => {
+              const isMe = order.employee === myName;
+              return (
+                <div key={order.orderId} className={`queue-table-row ${isMe ? "queue-row-mine" : ""}`}>
+                  <span className="queue-pos">{idx + 1}</span>
+                  <span className="queue-oid">{order.orderId}</span>
+                  <span className="queue-emp">{order.employee} {isMe && <em>(You)</em>}</span>
+                  <span className="queue-items-cell">
+                    {order.items.map((it) => `${it.name}×${it.qty}`).join(", ")}
+                  </span>
+                  <span className={`queue-status-pill pill-${order.status.toLowerCase()}`}>
+                    {STATUS_ICONS[order.status]} {order.status}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

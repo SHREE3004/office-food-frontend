@@ -89,7 +89,6 @@ export default function CartPage({ cart, setCart, setLastOrder }) {
         const orderData = buildOrderData("RAZORPAY", {
           razorpayPaymentId: response.razorpay_payment_id,
         });
-        setPaying(false);
         finishOrder(orderData);
       },
       modal: {
