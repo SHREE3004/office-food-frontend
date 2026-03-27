@@ -6,6 +6,16 @@ const router = express.Router();
 
 const ORDER_STATUSES = ["Placed", "Preparing", "Ready", "Delivered"];
 
+// Helper: format a DATE column without timezone shift
+function formatDate(d) {
+  if (!d) return null;
+  if (typeof d === "string") return d.split("T")[0];
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 // Helper: generate order ID like 20260319-01
 async function generateOrderId(scheduledDate) {
   const prefix = scheduledDate.replace(/-/g, "");
@@ -71,7 +81,7 @@ router.get("/", async (req, res) => {
         total: Number(o.total),
         paymentMode: o.payment_mode,
         status: o.status,
-        scheduledDate: o.scheduled_date.toISOString().split("T")[0],
+        scheduledDate: formatDate(o.scheduled_date),
         isPreOrder: o.is_pre_order,
         placedAt: o.placed_at,
         preparingAt: o.preparing_at,
