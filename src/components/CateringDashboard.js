@@ -331,6 +331,12 @@ export default function CateringDashboard() {
                         {order.preparingAt && <p><strong>Preparing since:</strong> {order.preparingAt}</p>}
                         {order.readyAt && <p><strong>Ready at:</strong> {order.readyAt}</p>}
                         {order.deliveredAt && <p><strong>Delivered at:</strong> {order.deliveredAt}</p>}
+                        {order.onTheWay && (
+                          <div className="onmyway-alert">
+                            <span className="onmyway-icon">🚶</span>
+                            <span><strong>{order.employee}</strong> is on the way to collect! {order.onTheWayAt && <small>({order.onTheWayAt})</small>}</span>
+                          </div>
+                        )}
                         <div className="order-items-list">
                           {order.items.map((item) => (
                             <span key={item.id} className="order-item-chip">

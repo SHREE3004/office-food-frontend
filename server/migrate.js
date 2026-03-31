@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS orders (
   razorpay_payment_id VARCHAR(255),
   notified_preparing BOOLEAN DEFAULT FALSE,
   notified_ready BOOLEAN DEFAULT FALSE,
+  on_the_way BOOLEAN DEFAULT FALSE,
+  on_the_way_at VARCHAR(100),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

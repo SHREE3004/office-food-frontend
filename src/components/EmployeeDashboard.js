@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 import { formatPrice, getQueuePosition, ORDER_STATUSES, getDateString } from "../helpers/storage";
-import { apiGetMenu, apiGetOrders, apiMarkNotified } from "../helpers/api";
+import { apiGetMenu, apiGetOrders, apiMarkNotified, apiMarkOnMyWay } from "../helpers/api";
 
 export default function EmployeeDashboard({ cart, setCart }) {
   const navigate = useNavigate();
@@ -216,6 +216,25 @@ export default function EmployeeDashboard({ cart, setCart }) {
                         <span className="order-date">{order.scheduledDate}</span>
                       </div>
                     </div>
+                    {/* On my way button */}
+                    {(order.status === "Preparing" || order.status === "Ready") && !order.onTheWay && (
+                      <button
+                        className="btn btn-onmyway"
+                        onClick={async () => {
+                          try {
+                            await apiMarkOnMyWay(order.orderId);
+                            setMyOrders((prev) => prev.map((o) => o.orderId === order.orderId ? { ...o, onTheWay: true } : o));
+                          } catch { }
+                        }}
+                      >
+                        🚶 I'm on my way to collect!
+                      </button>
+                    )}
+                    {order.onTheWay && (order.status === "Preparing" || order.status === "Ready") && (
+                      <div className="onmyway-badge-bar">
+                        <span>🚶 On the way — Catering team has been notified!</span>
+                      </div>
+                    )}
                     {/* Queue position */}
                     {(order.status === "Placed" || order.status === "Preparing") && order.queuePosition && (
                       <div className="queue-position-bar">

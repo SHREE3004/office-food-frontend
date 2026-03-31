@@ -94,3 +94,9 @@ export async function apiMarkNotified(orderId, field) {
     body: JSON.stringify({ field }),
   });
 }
+
+export async function apiMarkOnMyWay(orderId) {
+  return request(`/orders/${encodeURIComponent(orderId)}/onmyway`, {
+    method: "PATCH",
+  });
+}

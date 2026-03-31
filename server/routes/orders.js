@@ -95,6 +95,8 @@ router.get("/", async (req, res) => {
         razorpayPaymentId: o.razorpay_payment_id,
         notifiedPreparing: o.notified_preparing,
         notifiedReady: o.notified_ready,
+        onTheWay: o.on_the_way || false,
+        onTheWayAt: o.on_the_way_at,
       }));
       return res.json(enriched);
     }
@@ -221,6 +223,27 @@ router.patch("/:orderId/notify", authMiddleware, async (req, res) => {
     res.json({ message: "Notification marked." });
   } catch (err) {
     console.error("Mark notify error:", err.message);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// PATCH /api/orders/:orderId/onmyway — employee marks they are on the way
+router.patch("/:orderId/onmyway", authMiddleware, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const result = await pool.query(
+      `UPDATE orders SET on_the_way = TRUE, on_the_way_at = $1 WHERE order_id = $2 RETURNING *`,
+      [nowIST(), orderId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Order not found." });
+    }
+
+    res.json({ message: "Marked on the way.", orderId });
+  } catch (err) {
+    console.error("On my way error:", err.message);
     res.status(500).json({ error: "Internal server error." });
   }
 });

@@ -1256,6 +1256,74 @@
   50% { opacity: 0.5; }
 }
 
+/* ---------- ON MY WAY FEATURE ---------- */
+.btn-onmyway {
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #00b894, #00cec9);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.btn-onmyway:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 184, 148, 0.35);
+}
+
+.onmyway-badge-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #e8f8f0;
+  border: 1px solid #00b894;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: #00b894;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.onmyway-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #e8f8f0, #d1fae5);
+  border: 2px solid #00b894;
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: #065f46;
+  margin-top: 8px;
+  animation: onmyway-glow 2s infinite;
+}
+
+.onmyway-icon {
+  font-size: 20px;
+  animation: walk 1s infinite;
+}
+
+@keyframes walk {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+
+@keyframes onmyway-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0.2); }
+  50% { box-shadow: 0 0 8px 2px rgba(0, 184, 148, 0.3); }
+}
+
+.onmyway-alert small {
+  color: #059669;
+  font-size: 11px;
+}
+
 /* ---------- STATUS PROGRESS BAR ---------- */
 .status-progress {
   display: flex;
