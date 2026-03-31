@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 import { formatPrice, ORDER_STATUSES, getDateString } from "../helpers/storage";
-import { apiGetMenu, apiAddMenuItem, apiUpdateMenuItem, apiDeleteMenuItem, apiGetOrders, apiUpdateOrderStatus } from "../helpers/api";
+import { apiGetMenu, apiAddMenuItem, apiUpdateMenuItem, apiDeleteMenuItem, apiGetOrders, apiUpdateOrderStatus, apiRejectOrder } from "../helpers/api";
 
 const CATEGORIES = ["Breakfast", "Lunch", "Snacks", "Beverages"];
 
@@ -124,6 +124,17 @@ export default function CateringDashboard() {
     }
   };
 
+  const handleReject = async (orderId) => {
+    const reason = window.prompt("Reason for rejecting this order:", "Insufficient quantity");
+    if (reason === null) return; // cancelled
+    try {
+      await apiRejectOrder(orderId, reason);
+      setOrders((prev) => prev.map((o) => o.orderId === orderId ? { ...o, status: "Rejected", rejectedReason: reason } : o));
+    } catch (err) {
+      alert("Failed to reject order: " + err.message);
+    }
+  };
+
   const getNextStatus = (currentStatus) => {
     const idx = ORDER_STATUSES.indexOf(currentStatus);
     return idx < ORDER_STATUSES.length - 1 ? ORDER_STATUSES[idx + 1] : null;
@@ -137,6 +148,11 @@ export default function CateringDashboard() {
     const matchDate = o.scheduledDate === filterDate;
     const matchStatus = orderStatusFilter === "All" || o.status === orderStatusFilter;
     return matchDate && matchStatus;
+  }).sort((a, b) => {
+    // At-counter orders go to top
+    if (a.onTheWay && !b.onTheWay) return -1;
+    if (!a.onTheWay && b.onTheWay) return 1;
+    return 0;
   });
 
   const orderCounts = {
@@ -145,6 +161,7 @@ export default function CateringDashboard() {
     preparing: orders.filter((o) => o.scheduledDate === filterDate && o.status === "Preparing").length,
     ready: orders.filter((o) => o.scheduledDate === filterDate && o.status === "Ready").length,
     delivered: orders.filter((o) => o.scheduledDate === filterDate && o.status === "Delivered").length,
+    rejected: orders.filter((o) => o.scheduledDate === filterDate && o.status === "Rejected").length,
   };
 
   return (
@@ -306,6 +323,9 @@ export default function CateringDashboard() {
                 <button className={`pill ${orderStatusFilter === "Delivered" ? "active" : ""}`} onClick={() => setOrderStatusFilter("Delivered")}>
                   📦 Delivered ({orderCounts.delivered})
                 </button>
+                <button className={`pill ${orderStatusFilter === "Rejected" ? "active" : ""}`} onClick={() => setOrderStatusFilter("Rejected")}>
+                  ❌ Rejected ({orderCounts.rejected})
+                </button>
               </div>
             </div>
 
@@ -317,8 +337,14 @@ export default function CateringDashboard() {
               <div className="orders-list">
                 {filteredOrders.map((order) => {
                   const nextStatus = getNextStatus(order.status);
+                  const isAtCounter = order.onTheWay && order.status !== "Delivered" && order.status !== "Rejected";
                   return (
-                    <div key={order.orderId} className={`order-card order-card-${order.status.toLowerCase()}`}>
+                    <div key={order.orderId} className={`order-card order-card-${order.status.toLowerCase()} ${isAtCounter ? "order-card-at-counter" : ""}`}>
+                      {isAtCounter && (
+                        <div className="at-counter-banner">
+                          <span>🏢</span> <strong>{order.employee}</strong> is at the counter to collect ({order.orderId}) {order.onTheWayAt && <small>— {order.onTheWayAt}</small>}
+                        </div>
+                      )}
                       <div className="order-card-header">
                         <div>
                           <h4>{order.orderId}</h4>
@@ -335,10 +361,9 @@ export default function CateringDashboard() {
                         {order.preparingAt && <p><strong>Preparing since:</strong> {order.preparingAt}</p>}
                         {order.readyAt && <p><strong>Ready at:</strong> {order.readyAt}</p>}
                         {order.deliveredAt && <p><strong>Delivered at:</strong> {order.deliveredAt}</p>}
-                        {order.onTheWay && (
-                          <div className="onmyway-alert">
-                            <span className="onmyway-icon">🚶</span>
-                            <span><strong>{order.employee}</strong> ({order.orderId}) is on the way to collect! {order.onTheWayAt && <small>({order.onTheWayAt})</small>}</span>
+                        {order.status === "Rejected" && (
+                          <div className="rejected-alert">
+                            <span>❌ Rejected{order.rejectedReason ? `: ${order.rejectedReason}` : ""}</span>
                           </div>
                         )}
                         <div className="order-items-list">
@@ -351,17 +376,36 @@ export default function CateringDashboard() {
                       </div>
                       <div className="order-card-footer">
                         <strong>Total: {formatPrice(order.total)}</strong>
-                        {nextStatus ? (
+                        {order.status === "Placed" && (
+                          <div className="accept-reject-btns">
+                            <button
+                              className="btn btn-sm btn-success"
+                              onClick={() => handleStatusChange(order.orderId, "Preparing")}
+                            >
+                              ✅ Accept
+                            </button>
+                            <button
+                              className="btn btn-sm btn-danger"
+                              onClick={() => handleReject(order.orderId)}
+                            >
+                              ❌ Reject
+                            </button>
+                          </div>
+                        )}
+                        {order.status !== "Placed" && order.status !== "Rejected" && order.status !== "Delivered" && nextStatus && (
                           <button
-                            className={`btn btn-primary btn-sm status-advance-btn`}
+                            className="btn btn-primary btn-sm status-advance-btn"
                             onClick={() => handleStatusChange(order.orderId, nextStatus)}
                           >
-                            {nextStatus === "Preparing" && "👨‍🍳 Start Preparing"}
                             {nextStatus === "Ready" && "✅ Mark Ready"}
                             {nextStatus === "Delivered" && "📦 Mark Delivered"}
                           </button>
-                        ) : (
+                        )}
+                        {order.status === "Delivered" && (
                           <span className="status-badge status-badge-delivered">📦 Delivered</span>
+                        )}
+                        {order.status === "Rejected" && (
+                          <span className="status-badge status-badge-rejected">❌ Rejected</span>
                         )}
                       </div>
                     </div>

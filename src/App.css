@@ -1324,6 +1324,88 @@
   font-size: 11px;
 }
 
+/* ---------- AT COUNTER BANNER ---------- */
+.order-card-at-counter {
+  border: 2px solid #00b894 !important;
+  background: linear-gradient(135deg, #f0fdf4, #ecfdf5) !important;
+  box-shadow: 0 0 12px rgba(0, 184, 148, 0.25) !important;
+}
+
+.at-counter-banner {
+  background: #00b894;
+  color: white;
+  padding: 10px 14px;
+  margin: -14px -14px 12px -14px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  font-size: 14px;
+  animation: counter-pulse 2s infinite;
+}
+
+.at-counter-banner small {
+  opacity: 0.85;
+}
+
+@keyframes counter-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0.3); }
+  50% { box-shadow: 0 0 12px 4px rgba(0, 184, 148, 0.2); }
+}
+
+/* ---------- ACCEPT / REJECT BUTTONS ---------- */
+.accept-reject-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-success {
+  background: #00b894;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+}
+
+.btn-success:hover {
+  background: #00a884;
+}
+
+/* ---------- REJECTED STYLES ---------- */
+.order-card-rejected {
+  border-left: 4px solid #e74c3c;
+  opacity: 0.75;
+}
+
+.status-badge-rejected {
+  background: #fde8e8;
+  color: #e74c3c;
+}
+
+.rejected-alert {
+  padding: 8px 12px;
+  background: #fde8e8;
+  border: 1px solid #e74c3c;
+  border-radius: var(--radius-sm);
+  color: #c0392b;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.rejected-badge-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fde8e8;
+  border: 1px solid #e74c3c;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: #c0392b;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.status-pill-rejected { background: #fde8e8; color: #e74c3c; }
+
 /* ---------- STATUS PROGRESS BAR ---------- */
 .status-progress {
   display: flex;

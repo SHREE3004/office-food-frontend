@@ -100,3 +100,10 @@ export async function apiMarkOnMyWay(orderId) {
     method: "PATCH",
   });
 }
+
+export async function apiRejectOrder(orderId, reason) {
+  return request(`/orders/${encodeURIComponent(orderId)}/reject`, {
+    method: "PATCH",
+    body: JSON.stringify({ reason }),
+  });
+}

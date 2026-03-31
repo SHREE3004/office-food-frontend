@@ -4,7 +4,7 @@ const authMiddleware = require("../middleware/auth");
 
 const router = express.Router();
 
-const ORDER_STATUSES = ["Placed", "Preparing", "Ready", "Delivered"];
+const ORDER_STATUSES = ["Placed", "Preparing", "Ready", "Delivered", "Rejected"];
 
 // Helper: format a DATE column without timezone shift
 function formatDate(d) {
@@ -97,6 +97,7 @@ router.get("/", async (req, res) => {
         notifiedReady: o.notified_ready,
         onTheWay: o.on_the_way || false,
         onTheWayAt: o.on_the_way_at,
+        rejectedReason: o.rejected_reason,
       }));
       return res.json(enriched);
     }
@@ -227,7 +228,7 @@ router.patch("/:orderId/notify", authMiddleware, async (req, res) => {
   }
 });
 
-// PATCH /api/orders/:orderId/onmyway — employee marks they are on the way
+// PATCH /api/orders/:orderId/onmyway — employee marks they are at the counter
 router.patch("/:orderId/onmyway", authMiddleware, async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -244,6 +245,28 @@ router.patch("/:orderId/onmyway", authMiddleware, async (req, res) => {
     res.json({ message: "Marked on the way.", orderId });
   } catch (err) {
     console.error("On my way error:", err.message);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// PATCH /api/orders/:orderId/reject — catering rejects an order
+router.patch("/:orderId/reject", authMiddleware, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { reason } = req.body;
+
+    const result = await pool.query(
+      `UPDATE orders SET status = 'Rejected', rejected_reason = $1 WHERE order_id = $2 RETURNING *`,
+      [reason || 'Insufficient quantity', orderId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Order not found." });
+    }
+
+    res.json({ message: "Order rejected.", orderId });
+  } catch (err) {
+    console.error("Reject order error:", err.message);
     res.status(500).json({ error: "Internal server error." });
   }
 });

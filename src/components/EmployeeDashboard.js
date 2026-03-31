@@ -216,8 +216,8 @@ export default function EmployeeDashboard({ cart, setCart }) {
                         <span className="order-date">{order.scheduledDate}</span>
                       </div>
                     </div>
-                    {/* On my way button */}
-                    {(order.status === "Placed" || order.status === "Preparing" || order.status === "Ready") && !order.onTheWay && (
+                    {/* At counter button */}
+                    {(order.status === "Preparing" || order.status === "Ready") && !order.onTheWay && (
                       <button
                         className="btn btn-onmyway"
                         onClick={async () => {
@@ -225,17 +225,23 @@ export default function EmployeeDashboard({ cart, setCart }) {
                             await apiMarkOnMyWay(order.orderId);
                             setMyOrders((prev) => prev.map((o) => o.orderId === order.orderId ? { ...o, onTheWay: true } : o));
                           } catch (err) {
-                            console.error("On my way failed:", err);
+                            console.error("At counter failed:", err);
                             alert("Failed to notify. Please try again.");
                           }
                         }}
                       >
-                        🚶 I'm on my way to collect!
+                        🏢 I'm at the counter
                       </button>
                     )}
                     {order.onTheWay && order.status !== "Delivered" && (
                       <div className="onmyway-badge-bar">
-                        <span>🚶 On the way — Catering team has been notified!</span>
+                        <span>🏢 At the counter — Catering team has been notified!</span>
+                      </div>
+                    )}
+                    {/* Rejected notice */}
+                    {order.status === "Rejected" && (
+                      <div className="rejected-badge-bar">
+                        <span>❌ Order Rejected{order.rejectedReason ? `: ${order.rejectedReason}` : ""}</span>
                       </div>
                     )}
                     {/* Queue position */}

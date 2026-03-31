@@ -1,5 +1,6 @@
 // Valid status flow: Placed → Preparing → Ready → Delivered
 export const ORDER_STATUSES = ["Placed", "Preparing", "Ready", "Delivered"];
+export const ALL_STATUSES = ["Placed", "Preparing", "Ready", "Delivered", "Rejected"];
 
 export function getDateString(daysFromNow = 0) {
   const d = new Date();
