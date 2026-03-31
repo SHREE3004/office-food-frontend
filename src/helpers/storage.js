@@ -4,7 +4,10 @@ export const ORDER_STATUSES = ["Placed", "Preparing", "Ready", "Delivered"];
 export function getDateString(daysFromNow = 0) {
   const d = new Date();
   d.setDate(d.getDate() + daysFromNow);
-  return d.toISOString().split("T")[0];
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 // Compute queue position from an orders array (client-side helper)

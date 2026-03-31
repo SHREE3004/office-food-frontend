@@ -157,7 +157,7 @@ export default function CateringDashboard() {
             📋 Manage Menu ({menu.length})
           </button>
           <button className={`tab ${tab === "orders" ? "active" : ""}`} onClick={() => setTab("orders")}>
-            📦 Orders ({orders.length})
+            📦 Orders ({orderCounts.all})
           </button>
         </div>
 
