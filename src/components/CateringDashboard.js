@@ -334,7 +334,7 @@ export default function CateringDashboard() {
                         {order.onTheWay && (
                           <div className="onmyway-alert">
                             <span className="onmyway-icon">🚶</span>
-                            <span><strong>{order.employee}</strong> is on the way to collect! {order.onTheWayAt && <small>({order.onTheWayAt})</small>}</span>
+                            <span><strong>{order.employee}</strong> ({order.orderId}) is on the way to collect! {order.onTheWayAt && <small>({order.onTheWayAt})</small>}</span>
                           </div>
                         )}
                         <div className="order-items-list">
