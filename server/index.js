@@ -21,6 +21,15 @@ app.use("/api/orders", orderRoutes);
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
+// Debug: check DB columns (temporary)
+const pool = require("./db");
+app.get("/api/debug/columns", async (req, res) => {
+  try {
+    const r = await pool.query("SELECT column_name, data_type FROM information_schema.columns WHERE table_name='orders' ORDER BY ordinal_position");
+    res.json(r.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Serve React production build
 const buildPath = path.join(__dirname, "..", "build");
 // Cache static assets (js/css have hash in filename so safe to cache)
