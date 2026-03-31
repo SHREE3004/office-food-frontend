@@ -217,20 +217,23 @@ export default function EmployeeDashboard({ cart, setCart }) {
                       </div>
                     </div>
                     {/* On my way button */}
-                    {(order.status === "Preparing" || order.status === "Ready") && !order.onTheWay && (
+                    {(order.status === "Placed" || order.status === "Preparing" || order.status === "Ready") && !order.onTheWay && (
                       <button
                         className="btn btn-onmyway"
                         onClick={async () => {
                           try {
                             await apiMarkOnMyWay(order.orderId);
                             setMyOrders((prev) => prev.map((o) => o.orderId === order.orderId ? { ...o, onTheWay: true } : o));
-                          } catch { }
+                          } catch (err) {
+                            console.error("On my way failed:", err);
+                            alert("Failed to notify. Please try again.");
+                          }
                         }}
                       >
                         🚶 I'm on my way to collect!
                       </button>
                     )}
-                    {order.onTheWay && (order.status === "Preparing" || order.status === "Ready") && (
+                    {order.onTheWay && order.status !== "Delivered" && (
                       <div className="onmyway-badge-bar">
                         <span>🚶 On the way — Catering team has been notified!</span>
                       </div>
