@@ -31,7 +31,11 @@ export default function CateringDashboard() {
     }
   }, [navigate]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 5000);
+    return () => clearInterval(interval);
+  }, [loadData]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;

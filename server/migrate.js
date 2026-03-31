@@ -60,6 +60,16 @@ CREATE INDEX IF NOT EXISTS idx_orders_employee ON orders(employee);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 
+-- Add on_the_way columns if missing (for existing databases)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='on_the_way') THEN
+    ALTER TABLE orders ADD COLUMN on_the_way BOOLEAN DEFAULT FALSE;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='on_the_way_at') THEN
+    ALTER TABLE orders ADD COLUMN on_the_way_at VARCHAR(100);
+  END IF;
+END $$;
+
 -- Seed default menu items if table is empty
 INSERT INTO menu_items (name, price, category, description, available)
 SELECT * FROM (VALUES
