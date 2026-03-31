@@ -23,8 +23,12 @@ app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
 // Serve React production build
 const buildPath = path.join(__dirname, "..", "build");
-app.use(express.static(buildPath));
+// Cache static assets (js/css have hash in filename so safe to cache)
+app.use("/static", express.static(path.join(buildPath, "static"), { maxAge: "1y" }));
+// Don't cache index.html so new builds are picked up immediately
+app.use(express.static(buildPath, { etag: false, lastModified: false }));
 app.get("*", (req, res) => {
+  res.set("Cache-Control", "no-store");
   res.sendFile(path.join(buildPath, "index.html"));
 });
 

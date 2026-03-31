@@ -122,7 +122,7 @@ router.post("/", authMiddleware, async (req, res) => {
     await client.query("BEGIN");
 
     const orderId = await generateOrderId(scheduledDate);
-    const status = razorpayPaymentId ? "Paid" : "Placed";
+    const status = "Placed";
 
     await client.query(
       `INSERT INTO orders (order_id, employee, total, payment_mode, status, scheduled_date, is_pre_order, placed_at, razorpay_payment_id)
