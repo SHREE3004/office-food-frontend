@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("../db");
+const authMiddleware = require("../middleware/auth");
 
 const router = express.Router();
 const SALT_ROUNDS = 10;
@@ -73,6 +74,40 @@ router.post("/login", async (req, res) => {
     res.json({ token, name: user.name, role: user.role });
   } catch (err) {
     console.error("Login error:", err.message);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// GET /api/auth/users — list all users (catering only)
+router.get("/users", authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== "catering") {
+      return res.status(403).json({ error: "Only catering admins can view users." });
+    }
+    const result = await pool.query(
+      "SELECT id, name, role, created_at FROM users ORDER BY id"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("List users error:", err.message);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
+
+// DELETE /api/auth/users/:id — delete a user (catering only)
+router.delete("/users/:id", authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== "catering") {
+      return res.status(403).json({ error: "Only catering admins can delete users." });
+    }
+    const { id } = req.params;
+    const result = await pool.query("DELETE FROM users WHERE id = $1 RETURNING id, name, role", [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    res.json({ message: `User '${result.rows[0].name}' deleted.`, user: result.rows[0] });
+  } catch (err) {
+    console.error("Delete user error:", err.message);
     res.status(500).json({ error: "Internal server error." });
   }
 });
