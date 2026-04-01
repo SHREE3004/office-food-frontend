@@ -21,36 +21,6 @@ app.use("/api/orders", orderRoutes);
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
-// Debug: check DB columns (temporary)
-const pool = require("./db");
-app.get("/api/debug/columns", async (req, res) => {
-  try {
-    const r = await pool.query("SELECT column_name, data_type FROM information_schema.columns WHERE table_name='orders' ORDER BY ordinal_position");
-    res.json(r.rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// Debug: run migration (temporary)
-app.get("/api/debug/migrate", async (req, res) => {
-  try {
-    await pool.query(`
-      DO $$ BEGIN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='on_the_way') THEN
-          ALTER TABLE orders ADD COLUMN on_the_way BOOLEAN DEFAULT FALSE;
-        END IF;
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='on_the_way_at') THEN
-          ALTER TABLE orders ADD COLUMN on_the_way_at VARCHAR(100);
-        END IF;
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='rejected_reason') THEN
-          ALTER TABLE orders ADD COLUMN rejected_reason VARCHAR(255);
-        END IF;
-      END $$;
-    `);
-    const r = await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='orders' ORDER BY ordinal_position");
-    res.json({ success: true, columns: r.rows.map(x => x.column_name) });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
 // Serve React production build
 const buildPath = path.join(__dirname, "..", "build");
 // Cache static assets (js/css have hash in filename so safe to cache)
