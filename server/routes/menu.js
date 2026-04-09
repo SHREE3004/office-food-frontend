@@ -15,6 +15,7 @@ router.get("/", async (req, res) => {
       category: row.category,
       description: row.description,
       available: row.available,
+      stock: row.stock != null ? row.stock : 50,
     })));
   } catch (err) {
     console.error("Get menu error:", err.message);
@@ -32,14 +33,16 @@ router.post("/", authMiddleware, async (req, res) => {
     if (!name || !price || !category) {
       return res.status(400).json({ error: "Name, price, and category are required." });
     }
+    const stock = req.body.stock != null ? req.body.stock : 50;
     const result = await pool.query(
-      "INSERT INTO menu_items (name, price, category, description, available) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-      [name.trim(), price, category, description || "", available !== false]
+      "INSERT INTO menu_items (name, price, category, description, available, stock) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+      [name.trim(), price, category, description || "", available !== false, stock]
     );
     const row = result.rows[0];
     res.status(201).json({
       id: row.id, name: row.name, price: Number(row.price),
       category: row.category, description: row.description, available: row.available,
+      stock: row.stock,
     });
   } catch (err) {
     console.error("Add menu item error:", err.message);
@@ -57,10 +60,16 @@ router.put("/:id", authMiddleware, async (req, res) => {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid item ID." });
 
-    const result = await pool.query(
-      `UPDATE menu_items SET name=$1, price=$2, category=$3, description=$4, available=$5 WHERE id=$6 RETURNING *`,
-      [name.trim(), price, category, description || "", available, id]
-    );
+    const stock = req.body.stock != null ? req.body.stock : undefined;
+    const result = stock !== undefined
+      ? await pool.query(
+          `UPDATE menu_items SET name=$1, price=$2, category=$3, description=$4, available=$5, stock=$6 WHERE id=$7 RETURNING *`,
+          [name.trim(), price, category, description || "", available, stock, id]
+        )
+      : await pool.query(
+          `UPDATE menu_items SET name=$1, price=$2, category=$3, description=$4, available=$5 WHERE id=$6 RETURNING *`,
+          [name.trim(), price, category, description || "", available, id]
+        );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Menu item not found." });
     }
@@ -68,6 +77,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
     res.json({
       id: row.id, name: row.name, price: Number(row.price),
       category: row.category, description: row.description, available: row.available,
+      stock: row.stock,
     });
   } catch (err) {
     console.error("Update menu item error:", err.message);

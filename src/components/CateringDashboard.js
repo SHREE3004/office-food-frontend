@@ -6,7 +6,7 @@ import { apiGetMenu, apiAddMenuItem, apiUpdateMenuItem, apiDeleteMenuItem, apiGe
 
 const CATEGORIES = ["Breakfast", "Lunch", "Snacks", "Beverages"];
 
-const emptyItem = { name: "", price: "", category: "Lunch", description: "", available: true };
+const emptyItem = { name: "", price: "", category: "Lunch", description: "", available: true, stock: "50" };
 
 export default function CateringDashboard() {
   const navigate = useNavigate();
@@ -50,7 +50,7 @@ export default function CateringDashboard() {
 
   const openEditForm = (item) => {
     setEditItem(item);
-    setForm({ name: item.name, price: String(item.price), category: item.category, description: item.description, available: item.available });
+    setForm({ name: item.name, price: String(item.price), category: item.category, description: item.description, available: item.available, stock: String(item.stock != null ? item.stock : 50) });
     setShowForm(true);
   };
 
@@ -66,18 +66,20 @@ export default function CateringDashboard() {
 
     const price = Number(form.price);
     if (isNaN(price) || price <= 0) return;
+    const stock = Number(form.stock);
+    if (isNaN(stock) || stock < 0) return;
 
     try {
       if (editItem) {
         const updated = await apiUpdateMenuItem(editItem.id, {
           name: form.name.trim(), price, category: form.category,
-          description: form.description.trim(), available: form.available,
+          description: form.description.trim(), available: form.available, stock,
         });
         setMenu((prev) => prev.map((m) => m.id === editItem.id ? updated : m));
       } else {
         const newItem = await apiAddMenuItem({
           name: form.name.trim(), price, category: form.category,
-          description: form.description.trim(), available: form.available,
+          description: form.description.trim(), available: form.available, stock,
         });
         setMenu((prev) => [...prev, newItem]);
       }
@@ -153,7 +155,7 @@ export default function CateringDashboard() {
     if (a.onTheWay && !b.onTheWay) return -1;
     if (!a.onTheWay && b.onTheWay) return 1;
     return 0;
-  });
+  }); 
 
   const orderCounts = {
     all: orders.filter((o) => o.scheduledDate === filterDate).length,
@@ -217,6 +219,10 @@ export default function CateringDashboard() {
                         Available for ordering
                       </label>
                     </div>
+                    <div className="form-group">
+                      <label>Stock Quantity</label>
+                      <input name="stock" type="number" min="0" value={form.stock} onChange={handleChange} placeholder="e.g. 50" required />
+                    </div>
                     <div className="form-actions">
                       <button type="button" className="btn btn-outline" onClick={closeForm}>Cancel</button>
                       <button type="submit" className="btn btn-primary">{editItem ? "Update Item" : "Add Item"}</button>
@@ -239,6 +245,7 @@ export default function CateringDashboard() {
                       <th>Name</th>
                       <th>Category</th>
                       <th>Price</th>
+                      <th>Stock</th>
                       <th>Status</th>
                       <th>Actions</th>
                     </tr>
@@ -253,6 +260,11 @@ export default function CateringDashboard() {
                         </td>
                         <td><span className="category-tag">{item.category}</span></td>
                         <td>{formatPrice(item.price)}</td>
+                        <td>
+                          <span className={`stock-badge ${item.stock === 0 ? "stock-out" : item.stock <= 10 ? "stock-low" : "stock-ok"}`}>
+                            {item.stock === 0 ? "Out of stock" : item.stock}
+                          </span>
+                        </td>
                         <td>
                           <button
                             className={`status-toggle ${item.available ? "available" : "unavailable"}`}

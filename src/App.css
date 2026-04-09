@@ -2012,3 +2012,38 @@
     flex-direction: column;
   }
 }
+
+/* ---------- Stock Management ---------- */
+.stock-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.stock-ok {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+.stock-low {
+  background: #fff3e0;
+  color: #e65100;
+}
+.stock-out {
+  background: #ffebee;
+  color: #c62828;
+}
+.stock-warning {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #e65100;
+  margin-top: 4px;
+}
+.stock-out-text {
+  color: #c62828;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

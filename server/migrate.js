@@ -71,6 +71,9 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='rejected_reason') THEN
     ALTER TABLE orders ADD COLUMN rejected_reason VARCHAR(255);
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='menu_items' AND column_name='stock') THEN
+    ALTER TABLE menu_items ADD COLUMN stock INTEGER DEFAULT 50;
+  END IF;
 END $$;
 
 -- Seed default menu items if table is empty

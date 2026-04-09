@@ -136,6 +136,11 @@ router.post("/", authMiddleware, async (req, res) => {
         "INSERT INTO order_items (order_id, item_id, name, price, qty) VALUES ($1, $2, $3, $4, $5)",
         [orderId, item.id, item.name, item.price, item.qty]
       );
+      // Decrement stock
+      await client.query(
+        "UPDATE menu_items SET stock = GREATEST(stock - $1, 0) WHERE id = $2",
+        [item.qty, item.id]
+      );
     }
 
     await client.query("COMMIT");

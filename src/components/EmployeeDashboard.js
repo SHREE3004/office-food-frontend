@@ -305,13 +305,19 @@ export default function EmployeeDashboard({ cart, setCart }) {
                 <span className="menu-category">{item.category}</span>
                 <h3>{item.name}</h3>
                 <p className="menu-desc">{item.description}</p>
+                {item.stock != null && item.stock <= 10 && item.stock > 0 && (
+                  <span className="stock-warning">⚠️ Only {item.stock} left</span>
+                )}
+                {item.stock === 0 && (
+                  <span className="stock-warning stock-out-text">❌ Out of stock</span>
+                )}
                 <div className="menu-card-footer">
                   <span className="menu-price">{formatPrice(item.price)}</span>
                   {getCartQty(item.id) > 0 ? (
                     <span className="in-cart-badge">✓ {getCartQty(item.id)} in cart</span>
                   ) : null}
-                  <button className="btn btn-primary" onClick={() => addToCart(item)}>
-                    + Add
+                  <button className="btn btn-primary" onClick={() => addToCart(item)} disabled={item.stock === 0}>
+                    {item.stock === 0 ? "Sold Out" : "+ Add"}
                   </button>
                 </div>
               </div>
