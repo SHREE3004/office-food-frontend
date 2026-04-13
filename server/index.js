@@ -37,6 +37,21 @@ app.get("*", (req, res) => {
 
 // Auto-run migration on startup
 const migrationSQL = `
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='menu_items' AND column_name='stock') THEN
+    ALTER TABLE menu_items ADD COLUMN stock INTEGER DEFAULT 50;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='on_the_way') THEN
+    ALTER TABLE orders ADD COLUMN on_the_way BOOLEAN DEFAULT FALSE;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='on_the_way_at') THEN
+    ALTER TABLE orders ADD COLUMN on_the_way_at VARCHAR(100);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='rejected_reason') THEN
+    ALTER TABLE orders ADD COLUMN rejected_reason VARCHAR(255);
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS stock_logs (
   id SERIAL PRIMARY KEY,
   menu_item_id INTEGER NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
@@ -49,8 +64,8 @@ CREATE INDEX IF NOT EXISTS idx_stock_logs_menu_item ON stock_logs(menu_item_id);
 CREATE INDEX IF NOT EXISTS idx_stock_logs_created ON stock_logs(created_at DESC);
 `;
 pool.query(migrationSQL)
-  .then(() => console.log("Stock logs table ready."))
-  .catch((err) => console.error("Stock migration warning:", err.message));
+  .then(() => console.log("Database migration ready."))
+  .catch((err) => console.error("Migration warning:", err.message));
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
