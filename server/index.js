@@ -6,6 +6,7 @@ const path = require("path");
 const authRoutes = require("./routes/auth");
 const menuRoutes = require("./routes/menu");
 const orderRoutes = require("./routes/orders");
+const stockRoutes = require("./routes/stock");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/menu", menuRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/stock", stockRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));

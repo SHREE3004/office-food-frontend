@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 import { formatPrice, ORDER_STATUSES, getDateString } from "../helpers/storage";
-import { apiGetMenu, apiAddMenuItem, apiUpdateMenuItem, apiDeleteMenuItem, apiGetOrders, apiUpdateOrderStatus, apiRejectOrder } from "../helpers/api";
+import { apiGetMenu, apiAddMenuItem, apiUpdateMenuItem, apiDeleteMenuItem, apiGetOrders, apiUpdateOrderStatus, apiRejectOrder, apiGetStockLogs, apiAddStock } from "../helpers/api";
 
 const CATEGORIES = ["Breakfast", "Lunch", "Snacks", "Beverages"];
 
-const emptyItem = { name: "", price: "", category: "Lunch", description: "", available: true, stock: "50" };
+const emptyItem = { name: "", price: "", category: "Lunch", description: "", available: true };
 
 export default function CateringDashboard() {
   const navigate = useNavigate();
@@ -18,6 +18,9 @@ export default function CateringDashboard() {
   const [showForm, setShowForm] = useState(false);
   const [orderDateFilter, setOrderDateFilter] = useState("today");
   const [orderStatusFilter, setOrderStatusFilter] = useState("All");
+  const [stockLogs, setStockLogs] = useState([]);
+  const [showStockForm, setShowStockForm] = useState(false);
+  const [stockForm, setStockForm] = useState({ menuItemId: "", quantity: "" });
 
   const loadData = useCallback(async () => {
     const session = sessionStorage.getItem("office-food-session");
@@ -28,6 +31,12 @@ export default function CateringDashboard() {
       setOrders(ordersData);
     } catch (err) {
       console.error("Failed to load data:", err.message);
+    }
+    try {
+      const stockData = await apiGetStockLogs();
+      setStockLogs(stockData);
+    } catch (err) {
+      console.error("Failed to load stock logs:", err.message);
     }
   }, [navigate]);
 
@@ -50,7 +59,7 @@ export default function CateringDashboard() {
 
   const openEditForm = (item) => {
     setEditItem(item);
-    setForm({ name: item.name, price: String(item.price), category: item.category, description: item.description, available: item.available, stock: String(item.stock != null ? item.stock : 50) });
+    setForm({ name: item.name, price: String(item.price), category: item.category, description: item.description, available: item.available });
     setShowForm(true);
   };
 
@@ -66,20 +75,18 @@ export default function CateringDashboard() {
 
     const price = Number(form.price);
     if (isNaN(price) || price <= 0) return;
-    const stock = Number(form.stock);
-    if (isNaN(stock) || stock < 0) return;
 
     try {
       if (editItem) {
         const updated = await apiUpdateMenuItem(editItem.id, {
           name: form.name.trim(), price, category: form.category,
-          description: form.description.trim(), available: form.available, stock,
+          description: form.description.trim(), available: form.available,
         });
         setMenu((prev) => prev.map((m) => m.id === editItem.id ? updated : m));
       } else {
         const newItem = await apiAddMenuItem({
           name: form.name.trim(), price, category: form.category,
-          description: form.description.trim(), available: form.available, stock,
+          description: form.description.trim(), available: form.available,
         });
         setMenu((prev) => [...prev, newItem]);
       }
@@ -166,6 +173,23 @@ export default function CateringDashboard() {
     rejected: orders.filter((o) => o.scheduledDate === filterDate && o.status === "Rejected").length,
   };
 
+  const handleAddStock = async (e) => {
+    e.preventDefault();
+    const menuItemId = Number(stockForm.menuItemId);
+    const quantity = Number(stockForm.quantity);
+    if (!menuItemId || !quantity || quantity <= 0) return;
+    try {
+      const newLog = await apiAddStock(menuItemId, quantity);
+      setStockLogs((prev) => [newLog, ...prev]);
+      // Update menu item stock locally
+      setMenu((prev) => prev.map((m) => m.id === menuItemId ? { ...m, stock: newLog.currentStock } : m));
+      setStockForm({ menuItemId: "", quantity: "" });
+      setShowStockForm(false);
+    } catch (err) {
+      alert("Failed to add stock: " + err.message);
+    }
+  };
+
   return (
     <div className="dashboard">
       <Navbar title="Catering Dashboard" />
@@ -177,6 +201,9 @@ export default function CateringDashboard() {
           </button>
           <button className={`tab ${tab === "orders" ? "active" : ""}`} onClick={() => setTab("orders")}>
             📦 Orders ({orderCounts.all})
+          </button>
+          <button className={`tab ${tab === "stock" ? "active" : ""}`} onClick={() => setTab("stock")}>
+            📊 Stock Management
           </button>
         </div>
 
@@ -218,10 +245,6 @@ export default function CateringDashboard() {
                         <input type="checkbox" name="available" checked={form.available} onChange={handleChange} />
                         Available for ordering
                       </label>
-                    </div>
-                    <div className="form-group">
-                      <label>Stock Quantity</label>
-                      <input name="stock" type="number" min="0" value={form.stock} onChange={handleChange} placeholder="e.g. 50" required />
                     </div>
                     <div className="form-actions">
                       <button type="button" className="btn btn-outline" onClick={closeForm}>Cancel</button>
@@ -425,6 +448,132 @@ export default function CateringDashboard() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ===================== STOCK TAB ===================== */}
+        {tab === "stock" && (
+          <div>
+            <div className="section-header">
+              <h2>Stock Management</h2>
+              <button className="btn btn-primary" onClick={() => setShowStockForm(true)}>+ Add Stock</button>
+            </div>
+
+            {showStockForm && (
+              <div className="modal-overlay" onClick={() => setShowStockForm(false)}>
+                <div className="modal" onClick={(e) => e.stopPropagation()}>
+                  <h3>Add Stock</h3>
+                  <form onSubmit={handleAddStock} className="item-form">
+                    <div className="form-group">
+                      <label>Select Item</label>
+                      <select
+                        value={stockForm.menuItemId}
+                        onChange={(e) => setStockForm((prev) => ({ ...prev, menuItemId: e.target.value }))}
+                        required
+                      >
+                        <option value="">-- Select an item --</option>
+                        {menu.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name} (Current stock: {item.stock})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Quantity to Add</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={stockForm.quantity}
+                        onChange={(e) => setStockForm((prev) => ({ ...prev, quantity: e.target.value }))}
+                        placeholder="e.g. 25"
+                        required
+                      />
+                    </div>
+                    <div className="form-actions">
+                      <button type="button" className="btn btn-outline" onClick={() => setShowStockForm(false)}>Cancel</button>
+                      <button type="submit" className="btn btn-primary">Add Stock</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Stock Addition History — primary view */}
+            <div className="stock-log-section">
+              <h3>📋 Stock Addition History</h3>
+              {stockLogs.length === 0 ? (
+                <div className="empty-state">
+                  <p>No stock additions recorded yet. Click "+ Add Stock" to add stock for an item.</p>
+                </div>
+              ) : (
+                <div className="catering-table-wrapper">
+                  <table className="catering-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Item</th>
+                        <th>Quantity Added</th>
+                        <th>Added By</th>
+                        <th>Date & Time</th>
+                        <th>Current Stock</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stockLogs.map((log, idx) => (
+                        <tr key={log.id}>
+                          <td>{idx + 1}</td>
+                          <td><strong>{log.itemName}</strong></td>
+                          <td><span className="stock-badge stock-ok">+{log.quantity}</span></td>
+                          <td>👤 {log.addedBy}</td>
+                          <td>🕐 {new Date(log.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</td>
+                          <td>
+                            <span className={`stock-badge ${log.currentStock === 0 ? "stock-out" : log.currentStock <= 10 ? "stock-low" : "stock-ok"}`}>
+                              {log.currentStock != null ? log.currentStock : "—"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Current stock overview */}
+            <div className="stock-overview" style={{ marginTop: 28 }}>
+              <h3>📊 Current Stock Levels</h3>
+              <div className="catering-table-wrapper">
+                <table className="catering-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Item Name</th>
+                      <th>Category</th>
+                      <th>Current Stock</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {menu.map((item, idx) => (
+                      <tr key={item.id}>
+                        <td>{idx + 1}</td>
+                        <td><strong>{item.name}</strong></td>
+                        <td><span className="category-tag">{item.category}</span></td>
+                        <td>
+                          <span className={`stock-badge ${item.stock === 0 ? "stock-out" : item.stock <= 10 ? "stock-low" : "stock-ok"}`}>
+                            {item.stock}
+                          </span>
+                        </td>
+                        <td>
+                          {item.stock === 0 ? "❌ Out of stock" : item.stock <= 10 ? "⚠️ Low stock" : "✅ In stock"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -2047,3 +2047,17 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ---------- Stock Management Tab ---------- */
+.stock-overview {
+  margin-bottom: 32px;
+}
+.stock-overview h3,
+.stock-log-section h3 {
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+  color: var(--gray-900);
+}
+.stock-log-section {
+  margin-top: 24px;
+}

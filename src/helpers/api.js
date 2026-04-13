@@ -107,3 +107,15 @@ export async function apiRejectOrder(orderId, reason) {
     body: JSON.stringify({ reason }),
   });
 }
+
+// ---------- Stock ----------
+export async function apiGetStockLogs() {
+  return request("/stock");
+}
+
+export async function apiAddStock(menuItemId, quantity) {
+  return request("/stock", {
+    method: "POST",
+    body: JSON.stringify({ menuItemId, quantity }),
+  });
+}

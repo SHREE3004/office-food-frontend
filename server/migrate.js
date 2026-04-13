@@ -76,6 +76,19 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- Stock logs table
+CREATE TABLE IF NOT EXISTS stock_logs (
+  id SERIAL PRIMARY KEY,
+  menu_item_id INTEGER NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+  item_name VARCHAR(255) NOT NULL,
+  quantity INTEGER NOT NULL,
+  added_by VARCHAR(255) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_stock_logs_menu_item ON stock_logs(menu_item_id);
+CREATE INDEX IF NOT EXISTS idx_stock_logs_created ON stock_logs(created_at DESC);
+
 -- Seed default menu items if table is empty
 INSERT INTO menu_items (name, price, category, description, available)
 SELECT * FROM (VALUES
