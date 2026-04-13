@@ -80,6 +80,7 @@ export default function CartPage({ cart, setCart, setLastOrder }) {
       image: "",
       prefill: {
         name: session.name || "",
+        method: "upi",
       },
       theme: {
         color: "#e23744",
