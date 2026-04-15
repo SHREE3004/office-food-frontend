@@ -113,9 +113,23 @@ export async function apiGetStockLogs() {
   return request("/stock");
 }
 
-export async function apiAddStock(menuItemId, quantity) {
+export async function apiAddStock(menuItemId, quantity, comment = '') {
   return request("/stock", {
     method: "POST",
-    body: JSON.stringify({ menuItemId, quantity }),
+    body: JSON.stringify({ menuItemId, quantity, comment }),
+  });
+}
+
+export async function apiReduceStock(menuItemId, quantity, comment = '') {
+  return request("/stock/reduce", {
+    method: "POST",
+    body: JSON.stringify({ menuItemId, quantity, comment }),
+  });
+}
+
+export async function apiResetAllStock(quantity) {
+  return request("/stock/reset-all", {
+    method: "POST",
+    body: JSON.stringify({ quantity }),
   });
 }

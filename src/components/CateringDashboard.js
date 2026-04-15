@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 import { formatPrice, ORDER_STATUSES, getDateString } from "../helpers/storage";
-import { apiGetMenu, apiAddMenuItem, apiUpdateMenuItem, apiDeleteMenuItem, apiGetOrders, apiUpdateOrderStatus, apiRejectOrder, apiGetStockLogs, apiAddStock } from "../helpers/api";
+import { apiGetMenu, apiAddMenuItem, apiUpdateMenuItem, apiDeleteMenuItem, apiGetOrders, apiUpdateOrderStatus, apiRejectOrder, apiGetStockLogs, apiAddStock, apiReduceStock, apiResetAllStock } from "../helpers/api";
 
 const CATEGORIES = ["Breakfast", "Lunch", "Snacks", "Beverages"];
 
@@ -23,6 +23,12 @@ export default function CateringDashboard() {
   const [stockForm, setStockForm] = useState({ menuItemId: "", quantity: "" });
   const [quickStockItemId, setQuickStockItemId] = useState(null);
   const [quickStockQty, setQuickStockQty] = useState("");
+  const [showResetForm, setShowResetForm] = useState(false);
+  const [resetQty, setResetQty] = useState("");
+  const [reduceStockItemId, setReduceStockItemId] = useState(null);
+  const [reduceStockQty, setReduceStockQty] = useState("");
+  const [quickStockComment, setQuickStockComment] = useState("");
+  const [reduceStockComment, setReduceStockComment] = useState("");
 
   const loadData = useCallback(async () => {
     const session = sessionStorage.getItem("office-food-session");
@@ -196,13 +202,48 @@ export default function CateringDashboard() {
     const qty = Number(quickStockQty);
     if (!quickStockItemId || !qty || qty <= 0) return;
     try {
-      const newLog = await apiAddStock(quickStockItemId, qty);
+      const newLog = await apiAddStock(quickStockItemId, qty, quickStockComment);
       setStockLogs((prev) => [newLog, ...prev]);
       setMenu((prev) => prev.map((m) => m.id === quickStockItemId ? { ...m, stock: newLog.currentStock } : m));
       setQuickStockItemId(null);
       setQuickStockQty("");
+      setQuickStockComment("");
     } catch (err) {
       alert("Failed to add stock: " + err.message);
+    }
+  };
+
+  const handleReduceStock = async (e) => {
+    e.preventDefault();
+    const qty = Number(reduceStockQty);
+    if (!reduceStockItemId || !qty || qty <= 0) return;
+    try {
+      const result = await apiReduceStock(reduceStockItemId, qty, reduceStockComment);
+      setMenu((prev) => prev.map((m) => m.id === reduceStockItemId ? { ...m, stock: result.currentStock } : m));
+      const stockData = await apiGetStockLogs();
+      setStockLogs(stockData);
+      setReduceStockItemId(null);
+      setReduceStockQty("");
+      setReduceStockComment("");
+    } catch (err) {
+      alert("Failed to reduce stock: " + err.message);
+    }
+  };
+
+  const handleResetAllStock = async (e) => {
+    e.preventDefault();
+    const qty = Number(resetQty);
+    if (!qty || qty <= 0) return;
+    if (!window.confirm(`Set stock to ${qty} for ALL menu items?`)) return;
+    try {
+      await apiResetAllStock(qty);
+      setMenu((prev) => prev.map((m) => ({ ...m, stock: qty })));
+      const stockData = await apiGetStockLogs();
+      setStockLogs(stockData);
+      setShowResetForm(false);
+      setResetQty("");
+    } catch (err) {
+      alert("Failed to reset stock: " + err.message);
     }
   };
 
@@ -288,9 +329,54 @@ export default function CateringDashboard() {
                         required
                       />
                     </div>
+                    <div className="form-group">
+                      <label>Comment (optional)</label>
+                      <input
+                        type="text"
+                        value={quickStockComment}
+                        onChange={(e) => setQuickStockComment(e.target.value)}
+                        placeholder="e.g. Morning batch received"
+                      />
+                    </div>
                     <div className="form-actions">
                       <button type="button" className="btn btn-outline" onClick={() => setQuickStockItemId(null)}>Cancel</button>
                       <button type="submit" className="btn btn-primary">Add Stock</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {reduceStockItemId && (
+              <div className="modal-overlay" onClick={() => setReduceStockItemId(null)}>
+                <div className="modal quick-stock-modal" onClick={(e) => e.stopPropagation()}>
+                  <h3>Reduce Stock — {menu.find((m) => m.id === reduceStockItemId)?.name}</h3>
+                  <p style={{fontSize: "13px", color: "#636e72", marginBottom: "14px"}}>Current stock: <strong>{menu.find((m) => m.id === reduceStockItemId)?.stock}</strong></p>
+                  <form onSubmit={handleReduceStock} className="item-form">
+                    <div className="form-group">
+                      <label>Quantity to Reduce</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={reduceStockQty}
+                        onChange={(e) => setReduceStockQty(e.target.value)}
+                        placeholder="e.g. 10"
+                        autoFocus
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Comment (optional)</label>
+                      <input
+                        type="text"
+                        value={reduceStockComment}
+                        onChange={(e) => setReduceStockComment(e.target.value)}
+                        placeholder="e.g. Damaged items removed"
+                      />
+                    </div>
+                    <div className="form-actions">
+                      <button type="button" className="btn btn-outline" onClick={() => setReduceStockItemId(null)}>Cancel</button>
+                      <button type="submit" className="btn btn-danger">Reduce Stock</button>
                     </div>
                   </form>
                 </div>
@@ -330,7 +416,8 @@ export default function CateringDashboard() {
                             <span className={`stock-badge ${item.stock === 0 ? "stock-out" : item.stock <= 10 ? "stock-low" : "stock-ok"}`}>
                               {item.stock === 0 ? "Out of stock" : item.stock}
                             </span>
-                            <button className="btn-quick-stock" title="Add stock" onClick={() => { setQuickStockItemId(item.id); setQuickStockQty(""); }}>+</button>
+                            <button className="btn-quick-stock btn-stock-minus" title="Reduce stock" onClick={() => { setReduceStockItemId(item.id); setReduceStockQty(""); setReduceStockComment(""); }}>−</button>
+                            <button className="btn-quick-stock" title="Add stock" onClick={() => { setQuickStockItemId(item.id); setQuickStockQty(""); setQuickStockComment(""); }}>+</button>
                           </div>
                         </td>
                         <td>
@@ -500,8 +587,38 @@ export default function CateringDashboard() {
           <div>
             <div className="section-header">
               <h2>Stock Management</h2>
-              <button className="btn btn-primary" onClick={() => setShowStockForm(true)}>+ Add Stock</button>
+              <div className="header-actions">
+                <button className="btn btn-outline" onClick={() => setShowResetForm(true)}>🔄 Reset All Stock</button>
+                <button className="btn btn-primary" onClick={() => setShowStockForm(true)}>+ Add Stock</button>
+              </div>
             </div>
+
+            {showResetForm && (
+              <div className="modal-overlay" onClick={() => setShowResetForm(false)}>
+                <div className="modal quick-stock-modal" onClick={(e) => e.stopPropagation()}>
+                  <h3>Reset All Stock</h3>
+                  <p style={{fontSize: "13px", color: "#636e72", marginBottom: "14px"}}>This will set stock to the entered quantity for <strong>every menu item</strong>.</p>
+                  <form onSubmit={handleResetAllStock} className="item-form">
+                    <div className="form-group">
+                      <label>Stock Quantity for All Items</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={resetQty}
+                        onChange={(e) => setResetQty(e.target.value)}
+                        placeholder="e.g. 50"
+                        autoFocus
+                        required
+                      />
+                    </div>
+                    <div className="form-actions">
+                      <button type="button" className="btn btn-outline" onClick={() => setShowResetForm(false)}>Cancel</button>
+                      <button type="submit" className="btn btn-primary">Reset All</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
 
             {showStockForm && (
               <div className="modal-overlay" onClick={() => setShowStockForm(false)}>
@@ -557,8 +674,9 @@ export default function CateringDashboard() {
                       <tr>
                         <th>#</th>
                         <th>Item</th>
-                        <th>Quantity Added</th>
+                        <th>Quantity</th>
                         <th>Added By</th>
+                        <th>Comment</th>
                         <th>Date & Time</th>
                         <th>Current Stock</th>
                       </tr>
@@ -568,8 +686,9 @@ export default function CateringDashboard() {
                         <tr key={log.id}>
                           <td>{idx + 1}</td>
                           <td><strong>{log.itemName}</strong></td>
-                          <td><span className="stock-badge stock-ok">+{log.quantity}</span></td>
+                          <td><span className={`stock-badge ${log.quantity < 0 ? 'stock-out' : 'stock-ok'}`}>{log.quantity > 0 ? '+' : ''}{log.quantity}</span></td>
                           <td>👤 {log.addedBy}</td>
+                          <td style={{color: '#636e72', fontStyle: log.comment ? 'normal' : 'italic'}}>{log.comment || '—'}</td>
                           <td>🕐 {new Date(log.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })}</td>
                           <td>
                             <span className={`stock-badge ${log.currentStock === 0 ? "stock-out" : log.currentStock <= 10 ? "stock-low" : "stock-ok"}`}>

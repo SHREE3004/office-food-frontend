@@ -58,8 +58,14 @@ CREATE TABLE IF NOT EXISTS stock_logs (
   item_name VARCHAR(255) NOT NULL,
   quantity INTEGER NOT NULL,
   added_by VARCHAR(255) NOT NULL,
+  comment TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='stock_logs' AND column_name='comment') THEN
+    ALTER TABLE stock_logs ADD COLUMN comment TEXT DEFAULT '';
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS idx_stock_logs_menu_item ON stock_logs(menu_item_id);
 CREATE INDEX IF NOT EXISTS idx_stock_logs_created ON stock_logs(created_at DESC);
 `;

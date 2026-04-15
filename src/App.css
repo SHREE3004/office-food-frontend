@@ -2156,6 +2156,27 @@
   background: var(--success);
   color: var(--white);
 }
+.btn-stock-minus {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--danger);
+  background: #ffeaea;
+  color: var(--danger);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.15s;
+}
+.btn-stock-minus:hover {
+  background: var(--danger);
+  color: var(--white);
+}
 .quick-stock-modal {
   max-width: 360px;
 }

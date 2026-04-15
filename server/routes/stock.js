@@ -13,7 +13,7 @@ router.get("/", authMiddleware, async (req, res) => {
 
     const result = await pool.query(
       `SELECT sl.id, sl.menu_item_id, sl.item_name, sl.quantity, sl.added_by,
-              sl.created_at, mi.stock AS current_stock
+              sl.comment, sl.created_at, mi.stock AS current_stock
        FROM stock_logs sl
        LEFT JOIN menu_items mi ON mi.id = sl.menu_item_id
        ORDER BY sl.created_at DESC
@@ -26,6 +26,7 @@ router.get("/", authMiddleware, async (req, res) => {
       itemName: row.item_name,
       quantity: row.quantity,
       addedBy: row.added_by,
+      comment: row.comment || '',
       createdAt: row.created_at,
       currentStock: row.current_stock,
     })));
@@ -43,7 +44,7 @@ router.post("/", authMiddleware, async (req, res) => {
       return res.status(403).json({ error: "Only catering admins can add stock." });
     }
 
-    const { menuItemId, quantity } = req.body;
+    const { menuItemId, quantity, comment } = req.body;
     if (!menuItemId || !quantity || quantity <= 0) {
       return res.status(400).json({ error: "Valid menu item ID and quantity are required." });
     }
@@ -69,9 +70,9 @@ router.post("/", authMiddleware, async (req, res) => {
 
     // Insert stock log
     const logResult = await client.query(
-      `INSERT INTO stock_logs (menu_item_id, item_name, quantity, added_by)
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [menuItemId, item.name, qty, req.user.name]
+      `INSERT INTO stock_logs (menu_item_id, item_name, quantity, added_by, comment)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [menuItemId, item.name, qty, req.user.name, (comment || '').trim()]
     );
 
     await client.query("COMMIT");
@@ -83,12 +84,99 @@ router.post("/", authMiddleware, async (req, res) => {
       itemName: row.item_name,
       quantity: row.quantity,
       addedBy: row.added_by,
+      comment: row.comment || '',
       createdAt: row.created_at,
       currentStock: item.stock + qty,
     });
   } catch (err) {
     await client.query("ROLLBACK");
     console.error("Add stock error:", err.message);
+    res.status(500).json({ error: "Internal server error." });
+  } finally {
+    client.release();
+  }
+});
+
+// POST /api/stock/reduce — reduce stock of an item (catering only)
+router.post("/reduce", authMiddleware, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    if (req.user.role !== "catering") {
+      return res.status(403).json({ error: "Only catering admins can reduce stock." });
+    }
+
+    const { menuItemId, quantity, comment } = req.body;
+    const qty = parseInt(quantity, 10);
+    if (!menuItemId || !qty || qty <= 0) {
+      return res.status(400).json({ error: "Valid menu item ID and quantity are required." });
+    }
+
+    await client.query("BEGIN");
+
+    const itemResult = await client.query("SELECT id, name, stock FROM menu_items WHERE id = $1", [menuItemId]);
+    if (itemResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Menu item not found." });
+    }
+
+    const item = itemResult.rows[0];
+    const newStock = Math.max(item.stock - qty, 0);
+
+    await client.query("UPDATE menu_items SET stock = $1 WHERE id = $2", [newStock, menuItemId]);
+
+    await client.query(
+      `INSERT INTO stock_logs (menu_item_id, item_name, quantity, added_by, comment)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [menuItemId, item.name, -qty, req.user.name, (comment || '').trim()]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({ menuItemId, itemName: item.name, quantity: -qty, currentStock: newStock });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Reduce stock error:", err.message);
+    res.status(500).json({ error: "Internal server error." });
+  } finally {
+    client.release();
+  }
+});
+
+// POST /api/stock/reset-all — set all items to a given stock quantity (catering only)
+router.post("/reset-all", authMiddleware, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    if (req.user.role !== "catering") {
+      return res.status(403).json({ error: "Only catering admins can reset stock." });
+    }
+
+    const { quantity } = req.body;
+    const qty = parseInt(quantity, 10);
+    if (!qty || qty <= 0) {
+      return res.status(400).json({ error: "Quantity must be a positive number." });
+    }
+
+    await client.query("BEGIN");
+
+    // Update all menu items stock
+    await client.query("UPDATE menu_items SET stock = $1", [qty]);
+
+    // Log the reset
+    const items = await client.query("SELECT id, name FROM menu_items");
+    for (const item of items.rows) {
+      await client.query(
+        `INSERT INTO stock_logs (menu_item_id, item_name, quantity, added_by)
+         VALUES ($1, $2, $3, $4)`,
+        [item.id, item.name, qty, req.user.name + " (Reset All)"]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    res.json({ message: "All items stock reset to " + qty, quantity: qty });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Reset all stock error:", err.message);
     res.status(500).json({ error: "Internal server error." });
   } finally {
     client.release();
