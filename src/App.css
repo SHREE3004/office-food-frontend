@@ -842,12 +842,12 @@
 }
 
 .order-serial-circle {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  background: var(--primary);
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: #1a1a2e;
   color: var(--white);
-  font-size: 22px;
+  font-size: 32px;
   font-weight: 900;
   font-family: monospace;
   display: flex;
@@ -865,7 +865,7 @@
 }
 
 .order-employee-name {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--gray-900);
   white-space: nowrap;
@@ -873,69 +873,58 @@
   text-overflow: ellipsis;
 }
 
-.order-date-id {
+.order-meta-line {
   font-size: 11px;
   color: var(--gray-700);
   font-family: monospace;
+  margin-top: 1px;
 }
 
-.order-card-right {
+.order-items-inline {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
 }
 
-.payment-tag {
-  font-size: 11px;
+.order-item-chip-inline {
+  font-size: 13px;
   font-weight: 700;
-  padding: 3px 10px;
+  background: var(--white);
+  color: var(--gray-900);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--gray-200);
+}
+
+.order-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.payment-tag-inline {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 3px 12px;
   border-radius: 50px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
-.payment-cod {
-  background: #fff8e1;
-  color: #e67e22;
-}
-
-.payment-online {
+.payment-paid {
   background: #e8f5e9;
   color: #2e7d32;
 }
 
-/* --- Order Items Section --- */
-.order-items-section {
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.order-item-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 12px;
-  background: var(--gray-100);
-  border-radius: var(--radius-sm);
-}
-
-.order-item-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--gray-900);
-}
-
-.order-item-qty {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--primary);
-  font-family: monospace;
+.payment-notpaid {
+  background: #fff3e0;
+  color: #e65100;
 }
 
 .order-total {
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 800;
   color: var(--gray-900);
 }
 
@@ -963,6 +952,9 @@
   border-top: 1px solid var(--gray-200);
   font-size: 15px;
   color: var(--dark);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 /* ---------- PASSWORD RULES ---------- */

@@ -428,18 +428,16 @@ export default function CateringDashboard() {
                       )}
                       <div className="order-card-top">
                         <div className="order-serial-circle">
-                          #{order.orderId.split("-")[1]}
+                          {order.orderId.split("-")[1]}
                         </div>
                         <div className="order-card-info">
                           <span className="order-employee-name">{order.employee}</span>
-                        </div>
-                        <div className="order-card-right">
-                          <span className={`status-badge status-badge-${order.status.toLowerCase()}`}>
-                            {order.status}
-                          </span>
-                          <span className={`payment-tag ${order.paymentMode === "COD" ? "payment-cod" : "payment-online"}`}>
-                            {order.paymentMode === "COD" ? "💵 COD" : "💳 Paid"}
-                          </span>
+                          <span className="order-meta-line">{order.orderId.split("-")[0].replace(/(\d{4})(\d{2})(\d{2})/, "$3-$2-$1")} • {order.placedAt ? order.placedAt.split(",").pop().trim() : ""}</span>
+                          <div className="order-items-inline">
+                            {order.items.map((item) => (
+                              <span key={item.id} className="order-item-chip-inline">{item.name} ×{item.qty}</span>
+                            ))}
+                          </div>
                         </div>
                       </div>
                       {order.isPreOrder && <div style={{padding: "0 16px"}}><span className="preorder-badge-sm">📅 Pre-order</span></div>}
@@ -450,16 +448,13 @@ export default function CateringDashboard() {
                           </div>
                         </div>
                       )}
-                      <div className="order-items-section">
-                        {order.items.map((item) => (
-                          <div key={item.id} className="order-item-row">
-                            <span className="order-item-name">{item.name}</span>
-                            <span className="order-item-qty">×{item.qty}</span>
-                          </div>
-                        ))}
-                      </div>
                       <div className="order-card-footer">
-                        <strong className="order-total">₹{order.total}</strong>
+                        <div className="order-footer-left">
+                          <strong className="order-total">₹{order.total}</strong>
+                          <span className={`payment-tag-inline ${order.paymentMode === "COD" ? "payment-notpaid" : "payment-paid"}`}>
+                            {order.paymentMode === "COD" ? "Not Paid" : "Paid"}
+                          </span>
+                        </div>
                         {order.status === "Placed" && (
                           <div className="accept-reject-btns">
                             <button
