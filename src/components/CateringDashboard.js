@@ -21,6 +21,8 @@ export default function CateringDashboard() {
   const [stockLogs, setStockLogs] = useState([]);
   const [showStockForm, setShowStockForm] = useState(false);
   const [stockForm, setStockForm] = useState({ menuItemId: "", quantity: "" });
+  const [quickStockItemId, setQuickStockItemId] = useState(null);
+  const [quickStockQty, setQuickStockQty] = useState("");
 
   const loadData = useCallback(async () => {
     const session = sessionStorage.getItem("office-food-session");
@@ -181,10 +183,24 @@ export default function CateringDashboard() {
     try {
       const newLog = await apiAddStock(menuItemId, quantity);
       setStockLogs((prev) => [newLog, ...prev]);
-      // Update menu item stock locally
       setMenu((prev) => prev.map((m) => m.id === menuItemId ? { ...m, stock: newLog.currentStock } : m));
       setStockForm({ menuItemId: "", quantity: "" });
       setShowStockForm(false);
+    } catch (err) {
+      alert("Failed to add stock: " + err.message);
+    }
+  };
+
+  const handleQuickAddStock = async (e) => {
+    e.preventDefault();
+    const qty = Number(quickStockQty);
+    if (!quickStockItemId || !qty || qty <= 0) return;
+    try {
+      const newLog = await apiAddStock(quickStockItemId, qty);
+      setStockLogs((prev) => [newLog, ...prev]);
+      setMenu((prev) => prev.map((m) => m.id === quickStockItemId ? { ...m, stock: newLog.currentStock } : m));
+      setQuickStockItemId(null);
+      setQuickStockQty("");
     } catch (err) {
       alert("Failed to add stock: " + err.message);
     }
@@ -255,6 +271,32 @@ export default function CateringDashboard() {
               </div>
             )}
 
+            {quickStockItemId && (
+              <div className="modal-overlay" onClick={() => setQuickStockItemId(null)}>
+                <div className="modal quick-stock-modal" onClick={(e) => e.stopPropagation()}>
+                  <h3>Add Stock — {menu.find((m) => m.id === quickStockItemId)?.name}</h3>
+                  <form onSubmit={handleQuickAddStock} className="item-form">
+                    <div className="form-group">
+                      <label>Quantity to Add</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={quickStockQty}
+                        onChange={(e) => setQuickStockQty(e.target.value)}
+                        placeholder="e.g. 25"
+                        autoFocus
+                        required
+                      />
+                    </div>
+                    <div className="form-actions">
+                      <button type="button" className="btn btn-outline" onClick={() => setQuickStockItemId(null)}>Cancel</button>
+                      <button type="submit" className="btn btn-primary">Add Stock</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
             {menu.length === 0 ? (
               <div className="empty-state">
                 <p>No menu items yet. Click "Add New Item" to get started.</p>
@@ -284,16 +326,20 @@ export default function CateringDashboard() {
                         <td><span className="category-tag">{item.category}</span></td>
                         <td>{formatPrice(item.price)}</td>
                         <td>
-                          <span className={`stock-badge ${item.stock === 0 ? "stock-out" : item.stock <= 10 ? "stock-low" : "stock-ok"}`}>
-                            {item.stock === 0 ? "Out of stock" : item.stock}
-                          </span>
+                          <div className="stock-cell">
+                            <span className={`stock-badge ${item.stock === 0 ? "stock-out" : item.stock <= 10 ? "stock-low" : "stock-ok"}`}>
+                              {item.stock === 0 ? "Out of stock" : item.stock}
+                            </span>
+                            <button className="btn-quick-stock" title="Add stock" onClick={() => { setQuickStockItemId(item.id); setQuickStockQty(""); }}>+</button>
+                          </div>
                         </td>
                         <td>
                           <button
-                            className={`status-toggle ${item.available ? "available" : "unavailable"}`}
+                            className={`status-toggle-simple ${item.available ? "status-yes" : "status-no"}`}
                             onClick={() => toggleAvailability(item.id)}
+                            title={item.available ? "Click to mark unavailable" : "Click to mark available"}
                           >
-                            {item.available ? "✅ Available" : "❌ Unavailable"}
+                            {item.available ? "✔" : "✘"}
                           </button>
                         </td>
                         <td>
@@ -377,40 +423,43 @@ export default function CateringDashboard() {
                     <div key={order.orderId} className={`order-card order-card-${order.status.toLowerCase()} ${isAtCounter ? "order-card-at-counter" : ""}`}>
                       {isAtCounter && (
                         <div className="at-counter-banner">
-                          <span>🏢</span> <strong>{order.employee}</strong> is at the counter to collect ({order.orderId}) {order.onTheWayAt && <small>— {order.onTheWayAt}</small>}
+                          <span>🏢</span> <strong>{order.employee}</strong> is at the counter to collect {order.onTheWayAt && <small>— {order.onTheWayAt.replace(/:\d{2}\s/, " ")}</small>}
                         </div>
                       )}
-                      <div className="order-card-header">
-                        <div>
-                          <h4>{order.orderId}</h4>
-                          {order.isPreOrder && <span className="preorder-badge-sm">📅 Pre-order</span>}
+                      <div className="order-card-top">
+                        <div className="order-serial-circle">
+                          #{order.orderId.split("-")[1]}
                         </div>
-                        <span className={`status-badge status-badge-${order.status.toLowerCase()}`}>
-                          {order.status}
-                        </span>
+                        <div className="order-card-info">
+                          <span className="order-employee-name">{order.employee}</span>
+                        </div>
+                        <div className="order-card-right">
+                          <span className={`status-badge status-badge-${order.status.toLowerCase()}`}>
+                            {order.status}
+                          </span>
+                          <span className={`payment-tag ${order.paymentMode === "COD" ? "payment-cod" : "payment-online"}`}>
+                            {order.paymentMode === "COD" ? "💵 COD" : "💳 Paid"}
+                          </span>
+                        </div>
                       </div>
-                      <div className="order-card-body">
-                        <p><strong>Employee:</strong> {order.employee}</p>
-                        <p><strong>Payment:</strong> {order.paymentMode === "COD" ? "💵 COD" : "💳 Razorpay"}</p>
-                        <p><strong>Placed:</strong> {order.placedAt}</p>
-                        {order.preparingAt && <p><strong>Preparing since:</strong> {order.preparingAt}</p>}
-                        {order.readyAt && <p><strong>Ready at:</strong> {order.readyAt}</p>}
-                        {order.deliveredAt && <p><strong>Delivered at:</strong> {order.deliveredAt}</p>}
-                        {order.status === "Rejected" && (
+                      {order.isPreOrder && <div style={{padding: "0 16px"}}><span className="preorder-badge-sm">📅 Pre-order</span></div>}
+                      {order.status === "Rejected" && (
+                        <div style={{padding: "0 16px"}}>
                           <div className="rejected-alert">
                             <span>❌ Rejected{order.rejectedReason ? `: ${order.rejectedReason}` : ""}</span>
                           </div>
-                        )}
-                        <div className="order-items-list">
-                          {order.items.map((item) => (
-                            <span key={item.id} className="order-item-chip">
-                              {item.name} × {item.qty}
-                            </span>
-                          ))}
                         </div>
+                      )}
+                      <div className="order-items-section">
+                        {order.items.map((item) => (
+                          <div key={item.id} className="order-item-row">
+                            <span className="order-item-name">{item.name}</span>
+                            <span className="order-item-qty">×{item.qty}</span>
+                          </div>
+                        ))}
                       </div>
                       <div className="order-card-footer">
-                        <strong>Total: {formatPrice(order.total)}</strong>
+                        <strong className="order-total">₹{order.total}</strong>
                         {order.status === "Placed" && (
                           <div className="accept-reject-btns">
                             <button
@@ -526,7 +575,7 @@ export default function CateringDashboard() {
                           <td><strong>{log.itemName}</strong></td>
                           <td><span className="stock-badge stock-ok">+{log.quantity}</span></td>
                           <td>👤 {log.addedBy}</td>
-                          <td>🕐 {new Date(log.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</td>
+                          <td>🕐 {new Date(log.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })}</td>
                           <td>
                             <span className={`stock-badge ${log.currentStock === 0 ? "stock-out" : log.currentStock <= 10 ? "stock-low" : "stock-ok"}`}>
                               {log.currentStock != null ? log.currentStock : "—"}

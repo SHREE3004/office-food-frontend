@@ -18,7 +18,7 @@ function formatDate(d) {
 
 // Helper: get current time in IST
 function nowIST() {
-  return new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+  return new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric", hour12: true });
 }
 
 // Helper: generate order ID like 20260319-01

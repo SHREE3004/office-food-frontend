@@ -824,28 +824,128 @@
   border-radius: var(--radius);
   border: 1px solid var(--gray-200);
   overflow: hidden;
+  transition: box-shadow 0.2s;
 }
 
-.order-card-header {
+.order-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* --- New Order Card Top Section --- */
+.order-card-top {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 14px;
   padding: 16px;
   background: var(--gray-100);
   border-bottom: 1px solid var(--gray-200);
 }
 
-.order-card-header h4 {
-  font-size: 14px;
+.order-serial-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--primary);
+  color: var(--white);
+  font-size: 22px;
+  font-weight: 900;
   font-family: monospace;
-  color: var(--dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.order-card-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.order-employee-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gray-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-date-id {
+  font-size: 11px;
+  color: var(--gray-700);
+  font-family: monospace;
+}
+
+.order-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.payment-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 50px;
+}
+
+.payment-cod {
+  background: #fff8e1;
+  color: #e67e22;
+}
+
+.payment-online {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* --- Order Items Section --- */
+.order-items-section {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.order-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--gray-100);
+  border-radius: var(--radius-sm);
+}
+
+.order-item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.order-item-qty {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--primary);
+  font-family: monospace;
+}
+
+.order-total {
+  font-size: 16px;
+  color: var(--gray-900);
 }
 
 .status-badge {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   padding: 4px 10px;
   border-radius: 50px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .status-badge.paid {
@@ -856,31 +956,6 @@
 .status-badge.cod {
   background: #fff8e1;
   color: #f39c12;
-}
-
-.order-card-body {
-  padding: 16px;
-}
-
-.order-card-body p {
-  font-size: 13px;
-  margin-bottom: 6px;
-  color: var(--gray-700);
-}
-
-.order-items-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
-}
-
-.order-item-chip {
-  font-size: 12px;
-  background: var(--gray-100);
-  padding: 4px 10px;
-  border-radius: 50px;
-  font-weight: 500;
 }
 
 .order-card-footer {
@@ -2060,4 +2135,69 @@
 }
 .stock-log-section {
   margin-top: 24px;
+}
+
+/* ---------- Quick Stock Add Button ---------- */
+.stock-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-quick-stock {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--success);
+  background: #e8f5e9;
+  color: var(--success);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.15s;
+}
+.btn-quick-stock:hover {
+  background: var(--success);
+  color: var(--white);
+}
+.quick-stock-modal {
+  max-width: 360px;
+}
+
+/* ---------- Simplified Status Toggle ---------- */
+.status-toggle-simple {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.15s;
+}
+.status-yes {
+  border-color: var(--success);
+  background: #e8f5e9;
+  color: var(--success);
+}
+.status-yes:hover {
+  background: var(--success);
+  color: var(--white);
+}
+.status-no {
+  border-color: var(--danger);
+  background: #ffebee;
+  color: var(--danger);
+}
+.status-no:hover {
+  background: var(--danger);
+  color: var(--white);
 }
