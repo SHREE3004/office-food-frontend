@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read #This is required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
@@ -23,24 +23,17 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: Install frontend dependencies and build
+      - name: npm install, build, and test
         run: |
           npm install
-          npm run build
-
-      - name: Install server dependencies
-        run: |
-          cd server
-          npm install
+          npm run build --if-present
+          npm run test --if-present
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: |
-            build/
-            server/
-            package.json
+          path: .
 
   deploy:
     runs-on: ubuntu-latest
@@ -59,4 +52,4 @@ jobs:
           app-name: 'servebox'
           slot-name: 'Production'
           package: .
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_796DA958B3EF4757A561D7DF16DB99A3 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_9F59765ACECC4D25955F039D190EEB3E }}
