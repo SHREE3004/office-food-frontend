@@ -22,7 +22,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/stock", stockRoutes);
 
 // Health check
-app.get("/api/health", (req, res) => res.json({ status: "ok", node_env: process.env.NODE_ENV, has_db_url: !!process.env.DATABASE_URL }));
+app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
 // Serve React production build
 const buildPath = path.join(__dirname, "..", "build");
