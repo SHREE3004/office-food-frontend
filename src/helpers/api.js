@@ -127,9 +127,9 @@ export async function apiReduceStock(menuItemId, quantity, comment = '') {
   });
 }
 
-export async function apiResetAllStock(quantity) {
+export async function apiResetAllStock() {
   return request("/stock/reset-all", {
     method: "POST",
-    body: JSON.stringify({ quantity }),
+    body: JSON.stringify({}),
   });
 }

@@ -142,7 +142,7 @@ router.post("/reduce", authMiddleware, async (req, res) => {
   }
 });
 
-// POST /api/stock/reset-all — set all items to a given stock quantity (catering only)
+// POST /api/stock/reset-all — reset all items to their default stock (catering only)
 router.post("/reset-all", authMiddleware, async (req, res) => {
   const client = await pool.connect();
   try {
@@ -150,30 +150,26 @@ router.post("/reset-all", authMiddleware, async (req, res) => {
       return res.status(403).json({ error: "Only catering admins can reset stock." });
     }
 
-    const { quantity } = req.body;
-    const qty = parseInt(quantity, 10);
-    if (!qty || qty <= 0) {
-      return res.status(400).json({ error: "Quantity must be a positive number." });
-    }
-
     await client.query("BEGIN");
 
-    // Update all menu items stock
-    await client.query("UPDATE menu_items SET stock = $1", [qty]);
+    // Update each menu item to its own default_stock
+    await client.query("UPDATE menu_items SET stock = COALESCE(default_stock, 50)");
 
-    // Log the reset
-    const items = await client.query("SELECT id, name FROM menu_items");
+    // Log the reset for each item
+    const items = await client.query("SELECT id, name, COALESCE(default_stock, 50) AS default_stock FROM menu_items");
     for (const item of items.rows) {
       await client.query(
         `INSERT INTO stock_logs (menu_item_id, item_name, quantity, added_by)
          VALUES ($1, $2, $3, $4)`,
-        [item.id, item.name, qty, req.user.name + " (Reset All)"]
+        [item.id, item.name, item.default_stock, req.user.name + " (Reset All)"]
       );
     }
 
     await client.query("COMMIT");
 
-    res.json({ message: "All items stock reset to " + qty, quantity: qty });
+    // Return updated items so frontend can update
+    const updated = items.rows.map(r => ({ id: r.id, stock: r.default_stock }));
+    res.json({ message: "All items stock reset to their default levels", items: updated });
   } catch (err) {
     await client.query("ROLLBACK");
     console.error("Reset all stock error:", err.message);

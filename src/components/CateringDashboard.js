@@ -6,7 +6,7 @@ import { apiGetMenu, apiAddMenuItem, apiUpdateMenuItem, apiDeleteMenuItem, apiGe
 
 const CATEGORIES = ["Breakfast", "Lunch", "Snacks", "Beverages"];
 
-const emptyItem = { name: "", price: "", category: "Lunch", description: "", available: true };
+const emptyItem = { name: "", price: "", category: "Lunch", description: "", available: true, defaultStock: "50" };
 
 export default function CateringDashboard() {
   const navigate = useNavigate();
@@ -24,7 +24,6 @@ export default function CateringDashboard() {
   const [quickStockItemId, setQuickStockItemId] = useState(null);
   const [quickStockQty, setQuickStockQty] = useState("");
   const [showResetForm, setShowResetForm] = useState(false);
-  const [resetQty, setResetQty] = useState("");
   const [reduceStockItemId, setReduceStockItemId] = useState(null);
   const [reduceStockQty, setReduceStockQty] = useState("");
   const [quickStockComment, setQuickStockComment] = useState("");
@@ -67,7 +66,7 @@ export default function CateringDashboard() {
 
   const openEditForm = (item) => {
     setEditItem(item);
-    setForm({ name: item.name, price: String(item.price), category: item.category, description: item.description, available: item.available });
+    setForm({ name: item.name, price: String(item.price), category: item.category, description: item.description, available: item.available, defaultStock: String(item.defaultStock != null ? item.defaultStock : 50) });
     setShowForm(true);
   };
 
@@ -89,12 +88,14 @@ export default function CateringDashboard() {
         const updated = await apiUpdateMenuItem(editItem.id, {
           name: form.name.trim(), price, category: form.category,
           description: form.description.trim(), available: form.available,
+          defaultStock: Number(form.defaultStock) || 50,
         });
         setMenu((prev) => prev.map((m) => m.id === editItem.id ? updated : m));
       } else {
         const newItem = await apiAddMenuItem({
           name: form.name.trim(), price, category: form.category,
           description: form.description.trim(), available: form.available,
+          defaultStock: Number(form.defaultStock) || 50,
         });
         setMenu((prev) => [...prev, newItem]);
       }
@@ -230,18 +231,19 @@ export default function CateringDashboard() {
     }
   };
 
-  const handleResetAllStock = async (e) => {
-    e.preventDefault();
-    const qty = Number(resetQty);
-    if (!qty || qty <= 0) return;
-    if (!window.confirm(`Set stock to ${qty} for ALL menu items?`)) return;
+  const handleResetAllStock = async () => {
+    if (!window.confirm(`Reset stock for ALL menu items to their default levels?`)) return;
     try {
-      await apiResetAllStock(qty);
-      setMenu((prev) => prev.map((m) => ({ ...m, stock: qty })));
+      const result = await apiResetAllStock();
+      if (result.items) {
+        setMenu((prev) => prev.map((m) => {
+          const updated = result.items.find(i => i.id === m.id);
+          return updated ? { ...m, stock: updated.stock } : m;
+        }));
+      }
       const stockData = await apiGetStockLogs();
       setStockLogs(stockData);
       setShowResetForm(false);
-      setResetQty("");
     } catch (err) {
       alert("Failed to reset stock: " + err.message);
     }
@@ -296,6 +298,10 @@ export default function CateringDashboard() {
                     <div className="form-group">
                       <label>Description</label>
                       <input name="description" value={form.description} onChange={handleChange} placeholder="Short description" />
+                    </div>
+                    <div className="form-group">
+                      <label>Default Stock (for restock)</label>
+                      <input name="defaultStock" type="number" min="1" value={form.defaultStock} onChange={handleChange} placeholder="e.g. 50" required />
                     </div>
                     <div className="form-group checkbox-group">
                       <label>
@@ -397,6 +403,7 @@ export default function CateringDashboard() {
                       <th>Category</th>
                       <th>Price</th>
                       <th>Stock</th>
+                      <th>Default</th>
                       <th>Status</th>
                       <th>Actions</th>
                     </tr>
@@ -419,6 +426,9 @@ export default function CateringDashboard() {
                             <button className="btn-quick-stock btn-stock-minus" title="Reduce stock" onClick={() => { setReduceStockItemId(item.id); setReduceStockQty(""); setReduceStockComment(""); }}>−</button>
                             <button className="btn-quick-stock" title="Add stock" onClick={() => { setQuickStockItemId(item.id); setQuickStockQty(""); setQuickStockComment(""); }}>+</button>
                           </div>
+                        </td>
+                        <td>
+                          <span className="stock-badge stock-ok">{item.defaultStock != null ? item.defaultStock : 50}</span>
                         </td>
                         <td>
                           <button
@@ -595,27 +605,33 @@ export default function CateringDashboard() {
 
             {showResetForm && (
               <div className="modal-overlay" onClick={() => setShowResetForm(false)}>
-                <div className="modal quick-stock-modal" onClick={(e) => e.stopPropagation()}>
-                  <h3>Reset All Stock</h3>
-                  <p style={{fontSize: "13px", color: "#636e72", marginBottom: "14px"}}>This will set stock to the entered quantity for <strong>every menu item</strong>.</p>
-                  <form onSubmit={handleResetAllStock} className="item-form">
-                    <div className="form-group">
-                      <label>Stock Quantity for All Items</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={resetQty}
-                        onChange={(e) => setResetQty(e.target.value)}
-                        placeholder="e.g. 50"
-                        autoFocus
-                        required
-                      />
-                    </div>
-                    <div className="form-actions">
-                      <button type="button" className="btn btn-outline" onClick={() => setShowResetForm(false)}>Cancel</button>
-                      <button type="submit" className="btn btn-primary">Reset All</button>
-                    </div>
-                  </form>
+                <div className="modal" onClick={(e) => e.stopPropagation()} style={{maxWidth: "520px"}}>
+                  <h3>Reset All Stock to Default</h3>
+                  <p style={{fontSize: "13px", color: "#636e72", marginBottom: "14px"}}>Each item will be reset to its own <strong>default stock</strong> level. You can change default stock by editing the menu item.</p>
+                  <div className="catering-table-wrapper" style={{maxHeight: "300px", overflowY: "auto", marginBottom: "16px"}}>
+                    <table className="catering-table" style={{fontSize: "13px"}}>
+                      <thead>
+                        <tr>
+                          <th>Item</th>
+                          <th>Current Stock</th>
+                          <th>Will Reset To</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {menu.map((item) => (
+                          <tr key={item.id}>
+                            <td><strong>{item.name}</strong></td>
+                            <td><span className={`stock-badge ${item.stock === 0 ? "stock-out" : item.stock <= 10 ? "stock-low" : "stock-ok"}`}>{item.stock}</span></td>
+                            <td><span className="stock-badge stock-ok">{item.defaultStock != null ? item.defaultStock : 50}</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="form-actions">
+                    <button type="button" className="btn btn-outline" onClick={() => setShowResetForm(false)}>Cancel</button>
+                    <button type="button" className="btn btn-primary" onClick={handleResetAllStock}>Reset All</button>
+                  </div>
                 </div>
               </div>
             )}

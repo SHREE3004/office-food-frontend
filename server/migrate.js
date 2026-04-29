@@ -74,6 +74,9 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='menu_items' AND column_name='stock') THEN
     ALTER TABLE menu_items ADD COLUMN stock INTEGER DEFAULT 50;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='menu_items' AND column_name='default_stock') THEN
+    ALTER TABLE menu_items ADD COLUMN default_stock INTEGER DEFAULT 50;
+  END IF;
 END $$;
 
 -- Stock logs table
